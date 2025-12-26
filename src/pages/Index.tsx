@@ -25,7 +25,7 @@ const Index = () => {
   const [statusFilter, setStatusFilter] = useState<DemandStatus | 'todos'>('todos');
 
   const filteredDemands = demands.filter((demand) => {
-    const responsibleNames = demand.responsibles.map(r => r.userName.toLowerCase()).join(' ');
+    const responsibleNames = demand.responsibles.map(r => r.teamMemberName.toLowerCase()).join(' ');
     const matchesSearch = demand.title.toLowerCase().includes(search.toLowerCase()) ||
       responsibleNames.includes(search.toLowerCase());
     const matchesStatus = statusFilter === 'todos' || demand.status === statusFilter;
@@ -129,7 +129,7 @@ const Index = () => {
                           <div className="flex items-center gap-6 text-sm text-muted-foreground flex-wrap">
                             <span className="flex items-center gap-1">
                               <Users className="w-4 h-4" />
-                              {demand.responsibles.map(r => r.userName).join(', ')}
+                              {demand.responsibles.map(r => r.teamMemberName).join(', ')}
                             </span>
                             <span className="flex items-center gap-1">
                               <Calendar className="w-4 h-4" />

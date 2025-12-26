@@ -1,78 +1,278 @@
-import { createContext, useContext, useState, ReactNode } from "react";
-import { Demand, DemandStatus, demands as initialDemands } from "@/data/mockData";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { DemandStatus, DemandPriority } from "@/data/mockData";
+
+export interface ResponsibilityItem {
+  id: string;
+  text: string;
+  completed: boolean;
+  hoursWorked: number;
+}
+
+export interface DemandResponsible {
+  id: string;
+  teamMemberId: string;
+  teamMemberName: string;
+  responsibilities: ResponsibilityItem[];
+}
+
+export interface Demand {
+  id: string;
+  title: string;
+  description: string;
+  responsibles: DemandResponsible[];
+  priority: DemandPriority;
+  status: DemandStatus;
+  createdAt: string;
+  startDate: string;
+  dueDate: string;
+}
+
+interface CreateDemandInput {
+  title: string;
+  description: string;
+  priority: DemandPriority;
+  startDate: string;
+  dueDate: string;
+  responsibles: {
+    teamMemberId: string;
+    responsibilities: string[];
+  }[];
+}
 
 interface DemandsContextType {
   demands: Demand[];
-  addDemand: (demand: Demand) => void;
-  updateDemandStatus: (demandId: string, status: DemandStatus) => void;
-  deleteDemand: (demandId: string) => void;
-  toggleResponsibility: (demandId: string, responsibleUserId: string, responsibilityId: string) => void;
-  updateTaskHours: (demandId: string, responsibleUserId: string, responsibilityId: string, hours: number) => void;
+  loading: boolean;
+  addDemand: (demand: CreateDemandInput) => Promise<void>;
+  updateDemandStatus: (demandId: string, status: DemandStatus) => Promise<void>;
+  deleteDemand: (demandId: string) => Promise<void>;
+  toggleResponsibility: (responsibilityId: string) => Promise<void>;
+  updateTaskHours: (responsibilityId: string, hours: number) => Promise<void>;
+  refreshDemands: () => Promise<void>;
 }
 
 const DemandsContext = createContext<DemandsContextType | undefined>(undefined);
 
 export function DemandsProvider({ children }: { children: ReactNode }) {
-  const [demands, setDemands] = useState<Demand[]>(initialDemands);
+  const [demands, setDemands] = useState<Demand[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const addDemand = (demand: Demand) => {
-    setDemands(prev => [demand, ...prev]);
+  const fetchDemands = async () => {
+    try {
+      // Fetch demands
+      const { data: demandsData, error: demandsError } = await supabase
+        .from('demands')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (demandsError) throw demandsError;
+
+      // Fetch responsibles with team member info
+      const { data: responsiblesData, error: responsiblesError } = await supabase
+        .from('demand_responsibles')
+        .select(`
+          id,
+          demand_id,
+          team_member_id,
+          team_members (id, name)
+        `);
+
+      if (responsiblesError) throw responsiblesError;
+
+      // Fetch responsibilities
+      const { data: responsibilitiesData, error: responsibilitiesError } = await supabase
+        .from('demand_responsibilities')
+        .select('*');
+
+      if (responsibilitiesError) throw responsibilitiesError;
+
+      // Map data to Demand interface
+      const mappedDemands: Demand[] = (demandsData || []).map(demand => {
+        const demandResponsibles = (responsiblesData || [])
+          .filter(r => r.demand_id === demand.id)
+          .map(r => {
+            const responsibilities = (responsibilitiesData || [])
+              .filter(resp => resp.demand_responsible_id === r.id)
+              .map(resp => ({
+                id: resp.id,
+                text: resp.text,
+                completed: resp.completed,
+                hoursWorked: Number(resp.hours_worked)
+              }));
+
+            return {
+              id: r.id,
+              teamMemberId: r.team_member_id,
+              teamMemberName: (r.team_members as any)?.name || '',
+              responsibilities
+            };
+          });
+
+        return {
+          id: demand.id,
+          title: demand.title,
+          description: demand.description || '',
+          priority: demand.priority as DemandPriority,
+          status: demand.status as DemandStatus,
+          createdAt: demand.created_at,
+          startDate: demand.start_date || '',
+          dueDate: demand.due_date || '',
+          responsibles: demandResponsibles
+        };
+      });
+
+      setDemands(mappedDemands);
+    } catch (error) {
+      console.error('Error fetching demands:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const updateDemandStatus = (demandId: string, status: DemandStatus) => {
-    setDemands(prev => prev.map(d => 
-      d.id === demandId ? { ...d, status } : d
-    ));
-  };
+  useEffect(() => {
+    fetchDemands();
+  }, []);
 
-  const deleteDemand = (demandId: string) => {
-    setDemands(prev => prev.filter(d => d.id !== demandId));
-  };
-
-  const toggleResponsibility = (demandId: string, responsibleUserId: string, responsibilityId: string) => {
-    setDemands(prev => prev.map(d => {
-      if (d.id !== demandId) return d;
-      return {
-        ...d,
-        responsibles: d.responsibles.map(resp => {
-          if (resp.userId !== responsibleUserId) return resp;
-          return {
-            ...resp,
-            responsibilities: resp.responsibilities.map(r => 
-              r.id === responsibilityId ? { ...r, completed: !r.completed } : r
-            )
-          };
+  const addDemand = async (input: CreateDemandInput) => {
+    try {
+      // Create demand
+      const { data: demandData, error: demandError } = await supabase
+        .from('demands')
+        .insert({
+          title: input.title,
+          description: input.description,
+          priority: input.priority,
+          status: 'aberta',
+          start_date: input.startDate,
+          due_date: input.dueDate
         })
-      };
-    }));
+        .select()
+        .single();
+
+      if (demandError) throw demandError;
+
+      // Create responsibles
+      for (const resp of input.responsibles) {
+        const { data: responsibleData, error: responsibleError } = await supabase
+          .from('demand_responsibles')
+          .insert({
+            demand_id: demandData.id,
+            team_member_id: resp.teamMemberId
+          })
+          .select()
+          .single();
+
+        if (responsibleError) throw responsibleError;
+
+        // Create responsibilities
+        const responsibilitiesInsert = resp.responsibilities
+          .filter(text => text.trim())
+          .map(text => ({
+            demand_responsible_id: responsibleData.id,
+            text: text.trim()
+          }));
+
+        if (responsibilitiesInsert.length > 0) {
+          const { error: respError } = await supabase
+            .from('demand_responsibilities')
+            .insert(responsibilitiesInsert);
+
+          if (respError) throw respError;
+        }
+      }
+
+      await fetchDemands();
+    } catch (error) {
+      console.error('Error adding demand:', error);
+      throw error;
+    }
   };
 
-  const updateTaskHours = (demandId: string, responsibleUserId: string, responsibilityId: string, hours: number) => {
-    setDemands(prev => prev.map(d => {
-      if (d.id !== demandId) return d;
-      return {
-        ...d,
-        responsibles: d.responsibles.map(resp => {
-          if (resp.userId !== responsibleUserId) return resp;
-          return {
-            ...resp,
-            responsibilities: resp.responsibilities.map(r => 
-              r.id === responsibilityId ? { ...r, hoursWorked: hours } : r
-            )
-          };
-        })
-      };
-    }));
+  const updateDemandStatus = async (demandId: string, status: DemandStatus) => {
+    try {
+      const { error } = await supabase
+        .from('demands')
+        .update({ status })
+        .eq('id', demandId);
+
+      if (error) throw error;
+
+      setDemands(prev => prev.map(d =>
+        d.id === demandId ? { ...d, status } : d
+      ));
+    } catch (error) {
+      console.error('Error updating demand status:', error);
+      throw error;
+    }
+  };
+
+  const deleteDemand = async (demandId: string) => {
+    try {
+      const { error } = await supabase
+        .from('demands')
+        .delete()
+        .eq('id', demandId);
+
+      if (error) throw error;
+
+      setDemands(prev => prev.filter(d => d.id !== demandId));
+    } catch (error) {
+      console.error('Error deleting demand:', error);
+      throw error;
+    }
+  };
+
+  const toggleResponsibility = async (responsibilityId: string) => {
+    try {
+      // Find the current state
+      const { data, error: fetchError } = await supabase
+        .from('demand_responsibilities')
+        .select('completed')
+        .eq('id', responsibilityId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      const { error } = await supabase
+        .from('demand_responsibilities')
+        .update({ completed: !data.completed })
+        .eq('id', responsibilityId);
+
+      if (error) throw error;
+
+      await fetchDemands();
+    } catch (error) {
+      console.error('Error toggling responsibility:', error);
+      throw error;
+    }
+  };
+
+  const updateTaskHours = async (responsibilityId: string, hours: number) => {
+    try {
+      const { error } = await supabase
+        .from('demand_responsibilities')
+        .update({ hours_worked: hours })
+        .eq('id', responsibilityId);
+
+      if (error) throw error;
+
+      await fetchDemands();
+    } catch (error) {
+      console.error('Error updating task hours:', error);
+      throw error;
+    }
   };
 
   return (
-    <DemandsContext.Provider value={{ 
-      demands, 
-      addDemand, 
-      updateDemandStatus, 
+    <DemandsContext.Provider value={{
+      demands,
+      loading,
+      addDemand,
+      updateDemandStatus,
       deleteDemand,
       toggleResponsibility,
-      updateTaskHours
+      updateTaskHours,
+      refreshDemands: fetchDemands
     }}>
       {children}
     </DemandsContext.Provider>

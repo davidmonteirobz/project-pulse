@@ -4,8 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { ClipboardList, AlertTriangle, Calendar, Zap, ChevronRight, Users } from "lucide-react";
-import { useDemands } from "@/context/DemandsContext";
-import { Demand, getDemandStatusLabel, getPriorityLabel, DemandStatus } from "@/data/mockData";
+import { useDemands, Demand } from "@/context/DemandsContext";
+import { getDemandStatusLabel, getPriorityLabel, DemandStatus } from "@/data/mockData";
 
 type MetricType = 'em_andamento' | 'atrasadas' | 'urgentes' | 'entregas_semana';
 
@@ -193,7 +193,7 @@ export function DashboardMetrics() {
                         <div className="flex items-center gap-6 text-sm text-muted-foreground flex-wrap">
                           <span className="flex items-center gap-1">
                             <Users className="w-4 h-4" />
-                            {demand.responsibles.map(r => r.userName).join(', ')}
+                            {demand.responsibles.map(r => r.teamMemberName).join(', ')}
                           </span>
                           <span className="flex items-center gap-1">
                             <Calendar className="w-4 h-4" />

@@ -14,6 +14,116 @@ export type Database = {
   }
   public: {
     Tables: {
+      demand_responsibilities: {
+        Row: {
+          completed: boolean
+          created_at: string
+          demand_responsible_id: string
+          hours_worked: number
+          id: string
+          text: string
+          updated_at: string
+        }
+        Insert: {
+          completed?: boolean
+          created_at?: string
+          demand_responsible_id: string
+          hours_worked?: number
+          id?: string
+          text: string
+          updated_at?: string
+        }
+        Update: {
+          completed?: boolean
+          created_at?: string
+          demand_responsible_id?: string
+          hours_worked?: number
+          id?: string
+          text?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demand_responsibilities_demand_responsible_id_fkey"
+            columns: ["demand_responsible_id"]
+            isOneToOne: false
+            referencedRelation: "demand_responsibles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      demand_responsibles: {
+        Row: {
+          created_at: string
+          demand_id: string
+          id: string
+          team_member_id: string
+        }
+        Insert: {
+          created_at?: string
+          demand_id: string
+          id?: string
+          team_member_id: string
+        }
+        Update: {
+          created_at?: string
+          demand_id?: string
+          id?: string
+          team_member_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demand_responsibles_demand_id_fkey"
+            columns: ["demand_id"]
+            isOneToOne: false
+            referencedRelation: "demands"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demand_responsibles_team_member_id_fkey"
+            columns: ["team_member_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      demands: {
+        Row: {
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          priority: string
+          start_date: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority: string
+          start_date?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: string
+          start_date?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string

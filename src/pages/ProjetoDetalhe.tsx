@@ -37,6 +37,7 @@ const ProjetoDetalhe = () => {
   };
 
   const formatDate = (dateStr: string) => {
+    if (!dateStr) return '-';
     return new Date(dateStr).toLocaleDateString('pt-BR', {
       day: '2-digit',
       month: '2-digit',
@@ -47,7 +48,7 @@ const ProjetoDetalhe = () => {
   const getTotalHours = () => {
     if (!demand) return 0;
     return demand.responsibles.reduce((sum, r) => {
-      const responsibilities = Array.isArray(r.responsibilities) ? r.responsibilities : [];
+      const responsibilities = r.responsibilities || [];
       return sum + responsibilities.reduce((taskSum, task) => taskSum + (task.hoursWorked || 0), 0);
     }, 0);
   };
@@ -169,25 +170,23 @@ const ProjetoDetalhe = () => {
           {/* Tab: Responsáveis */}
           <TabsContent value="responsaveis" className="space-y-4 mt-4">
             {demand.responsibles.map((resp) => {
-              const responsibilities = Array.isArray(resp.responsibilities) 
-                ? resp.responsibilities 
-                : [];
+              const responsibilities = resp.responsibilities || [];
               const completedCount = getCompletedCount(responsibilities);
               const totalCount = responsibilities.length;
               const responsibleHours = getResponsibleHours(responsibilities);
 
               return (
-                <Card key={resp.userId} className="shadow-sm">
+                <Card key={resp.id} className="shadow-sm">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between flex-wrap gap-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                           <span className="text-primary font-semibold">
-                            {resp.userName.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                            {resp.teamMemberName.split(' ').map(n => n[0]).join('').slice(0, 2)}
                           </span>
                         </div>
                         <div>
-                          <p className="font-medium text-foreground">{resp.userName}</p>
+                          <p className="font-medium text-foreground">{resp.teamMemberName}</p>
                           <p className="text-sm text-muted-foreground">
                             {completedCount}/{totalCount} atribuições concluídas
                           </p>
@@ -209,7 +208,7 @@ const ProjetoDetalhe = () => {
                           <Checkbox
                             id={item.id}
                             checked={item.completed}
-                            onCheckedChange={() => toggleResponsibility(demand.id, resp.userId, item.id)}
+                            onCheckedChange={() => toggleResponsibility(item.id)}
                           />
                           <label 
                             htmlFor={item.id}
