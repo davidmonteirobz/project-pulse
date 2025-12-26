@@ -15,7 +15,6 @@ import {
 const menuItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Demandas", url: "/demandas", icon: ClipboardList },
-  { title: "Projetos", url: "/projetos", icon: FolderKanban },
   { title: "Relatórios", url: "/relatorios", icon: FileText },
 ];
 
