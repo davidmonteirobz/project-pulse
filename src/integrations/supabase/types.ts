@@ -48,6 +48,7 @@ export type Database = {
           name: string
           role_function: string
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
@@ -55,6 +56,7 @@ export type Database = {
           name: string
           role_function: string
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
@@ -62,8 +64,17 @@ export type Database = {
           name?: string
           role_function?: string
           updated_at?: string
+          user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "team_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {

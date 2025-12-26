@@ -21,20 +21,36 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { Search, Plus, Users, Trash2, Pencil } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Search, Plus, Users, Trash2, Pencil, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+
+interface Profile {
+  id: string;
+  name: string;
+  email: string;
+}
 
 interface TeamMember {
   id: string;
   name: string;
   role_function: string;
+  user_id: string | null;
   created_at: string;
   updated_at: string;
+  linked_user?: Profile | null;
 }
 
 const Equipe = () => {
   const [members, setMembers] = useState<TeamMember[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
   const [search, setSearch] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -44,11 +60,27 @@ const Equipe = () => {
   const [formData, setFormData] = useState({
     name: '',
     role_function: '',
+    user_id: '' as string | null,
   });
 
   useEffect(() => {
     fetchMembers();
+    fetchProfiles();
   }, []);
+
+  const fetchProfiles = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, name, email')
+        .order('name');
+      
+      if (error) throw error;
+      setProfiles(data || []);
+    } catch (error) {
+      console.error('Error fetching profiles:', error);
+    }
+  };
 
   const fetchMembers = async () => {
     try {
@@ -58,7 +90,23 @@ const Equipe = () => {
         .order('name');
       
       if (error) throw error;
-      setMembers(data || []);
+      
+      // Fetch linked user info for each member
+      const membersWithUsers = await Promise.all(
+        (data || []).map(async (member) => {
+          if (member.user_id) {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('id, name, email')
+              .eq('id', member.user_id)
+              .maybeSingle();
+            return { ...member, linked_user: profile };
+          }
+          return { ...member, linked_user: null };
+        })
+      );
+      
+      setMembers(membersWithUsers);
     } catch (error) {
       console.error('Error fetching team members:', error);
       toast.error("Erro ao carregar membros da equipe");
@@ -85,12 +133,13 @@ const Equipe = () => {
         .from('team_members')
         .insert([{ 
           name: formData.name.trim(), 
-          role_function: formData.role_function.trim() 
+          role_function: formData.role_function.trim(),
+          user_id: formData.user_id || null
         }]);
 
       if (error) throw error;
 
-      setFormData({ name: '', role_function: '' });
+      setFormData({ name: '', role_function: '', user_id: null });
       setIsDialogOpen(false);
       toast.success("Membro adicionado com sucesso!");
       fetchMembers();
@@ -113,13 +162,14 @@ const Equipe = () => {
         .from('team_members')
         .update({ 
           name: formData.name.trim(), 
-          role_function: formData.role_function.trim() 
+          role_function: formData.role_function.trim(),
+          user_id: formData.user_id || null
         })
         .eq('id', editingMember.id);
 
       if (error) throw error;
 
-      setFormData({ name: '', role_function: '' });
+      setFormData({ name: '', role_function: '', user_id: null });
       setEditingMember(null);
       setIsEditDialogOpen(false);
       toast.success("Membro atualizado com sucesso!");
@@ -149,7 +199,11 @@ const Equipe = () => {
 
   const openEditDialog = (member: TeamMember) => {
     setEditingMember(member);
-    setFormData({ name: member.name, role_function: member.role_function });
+    setFormData({ 
+      name: member.name, 
+      role_function: member.role_function,
+      user_id: member.user_id 
+    });
     setIsEditDialogOpen(true);
   };
 
@@ -194,6 +248,26 @@ const Equipe = () => {
                     onChange={(e) => setFormData({ ...formData, role_function: e.target.value })}
                     placeholder="Função do membro"
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="user_id">Vincular a Usuário (opcional)</Label>
+                  <Select
+                    value={formData.user_id || "none"}
+                    onValueChange={(value) => setFormData({ ...formData, user_id: value === "none" ? null : value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um usuário" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhum</SelectItem>
+                      {profiles.map((profile) => (
+                        <SelectItem key={profile.id} value={profile.id}>
+                          {profile.name} ({profile.email})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <DialogFooter className="mt-6">
@@ -246,6 +320,7 @@ const Equipe = () => {
                   <TableRow>
                     <TableHead>Nome</TableHead>
                     <TableHead>Função</TableHead>
+                    <TableHead>Usuário Vinculado</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -254,6 +329,16 @@ const Equipe = () => {
                     <TableRow key={member.id}>
                       <TableCell className="font-medium">{member.name}</TableCell>
                       <TableCell>{member.role_function}</TableCell>
+                      <TableCell>
+                        {member.linked_user ? (
+                          <div className="flex items-center gap-2">
+                            <Link2 className="w-4 h-4 text-primary" />
+                            <span>{member.linked_user.name}</span>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button
@@ -305,6 +390,26 @@ const Equipe = () => {
                   onChange={(e) => setFormData({ ...formData, role_function: e.target.value })}
                   placeholder="Função do membro"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-user_id">Vincular a Usuário (opcional)</Label>
+                <Select
+                  value={formData.user_id || "none"}
+                  onValueChange={(value) => setFormData({ ...formData, user_id: value === "none" ? null : value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um usuário" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhum</SelectItem>
+                    {profiles.map((profile) => (
+                      <SelectItem key={profile.id} value={profile.id}>
+                        {profile.name} ({profile.email})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <DialogFooter className="mt-6">
