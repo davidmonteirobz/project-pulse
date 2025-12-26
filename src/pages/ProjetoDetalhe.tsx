@@ -149,7 +149,7 @@ const ProjetoDetalhe = () => {
                   <div className="flex-1">
                     <p className="font-medium text-foreground">{resp.userName}</p>
                     <div className="mt-1 space-y-1">
-                      {resp.responsibilities.map((attr, attrIdx) => (
+                      {(Array.isArray(resp.responsibilities) ? resp.responsibilities : [resp.responsibilities || '']).map((attr, attrIdx) => (
                         <p key={attrIdx} className="text-sm text-muted-foreground flex items-center gap-2">
                           <span className="w-1.5 h-1.5 rounded-full bg-primary/50" />
                           {attr}

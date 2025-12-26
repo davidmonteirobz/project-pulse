@@ -459,7 +459,7 @@ const Demandas = () => {
                                 <span className="font-medium">{resp.userName}</span>
                               </div>
                               <div className="pl-6 text-muted-foreground">
-                                {resp.responsibilities.join(', ')}
+                                {Array.isArray(resp.responsibilities) ? resp.responsibilities.join(', ') : resp.responsibilities || ''}
                               </div>
                             </div>
                           ))}
