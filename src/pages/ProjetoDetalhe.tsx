@@ -6,13 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
 import { ArrowLeft, Calendar, Clock, FileText, Users, Timer } from "lucide-react";
 import { useDemands } from "@/context/DemandsContext";
 
 const ProjetoDetalhe = () => {
   const { id } = useParams<{ id: string }>();
-  const { demands, toggleResponsibility, updateHoursWorked } = useDemands();
+  const { demands, toggleResponsibility } = useDemands();
   const demand = demands.find((d) => d.id === id);
 
   const getStatusVariant = (status: string) => {
@@ -47,7 +46,14 @@ const ProjetoDetalhe = () => {
 
   const getTotalHours = () => {
     if (!demand) return 0;
-    return demand.responsibles.reduce((sum, r) => sum + (r.hoursWorked || 0), 0);
+    return demand.responsibles.reduce((sum, r) => {
+      const responsibilities = Array.isArray(r.responsibilities) ? r.responsibilities : [];
+      return sum + responsibilities.reduce((taskSum, task) => taskSum + (task.hoursWorked || 0), 0);
+    }, 0);
+  };
+
+  const getResponsibleHours = (responsibilities: { hoursWorked?: number }[]) => {
+    return responsibilities.reduce((sum, r) => sum + (r.hoursWorked || 0), 0);
   };
 
   const getCompletedCount = (responsibilities: { completed: boolean }[]) => {
@@ -168,6 +174,7 @@ const ProjetoDetalhe = () => {
                 : [];
               const completedCount = getCompletedCount(responsibilities);
               const totalCount = responsibilities.length;
+              const responsibleHours = getResponsibleHours(responsibilities);
 
               return (
                 <Card key={resp.userId} className="shadow-sm">
@@ -186,16 +193,9 @@ const ProjetoDetalhe = () => {
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.5"
-                          value={resp.hoursWorked || 0}
-                          onChange={(e) => updateHoursWorked(demand.id, resp.userId, parseFloat(e.target.value) || 0)}
-                          className="w-20 text-center"
-                        />
-                        <span className="text-sm text-muted-foreground">horas</span>
+                      <div className="flex items-center gap-2 bg-muted px-3 py-1 rounded-md">
+                        <Timer className="w-4 h-4 text-muted-foreground" />
+                        <span className="font-medium text-foreground">{responsibleHours}h</span>
                       </div>
                     </div>
                   </CardHeader>
@@ -217,6 +217,9 @@ const ProjetoDetalhe = () => {
                           >
                             {item.text}
                           </label>
+                          <span className="text-sm text-muted-foreground bg-background px-2 py-1 rounded">
+                            {item.hoursWorked || 0}h
+                          </span>
                         </div>
                       ))}
                     </div>
