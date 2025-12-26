@@ -240,14 +240,14 @@ const Demandas = () => {
                   <div className="space-y-2">
                     <Label htmlFor="project">Projeto (opcional)</Label>
                     <Select 
-                      value={formData.projectId} 
-                      onValueChange={(value) => setFormData({ ...formData, projectId: value })}
+                      value={formData.projectId || "none"} 
+                      onValueChange={(value) => setFormData({ ...formData, projectId: value === "none" ? "" : value })}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Nenhum" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Nenhum</SelectItem>
+                        <SelectItem value="none">Nenhum</SelectItem>
                         {projects.map((project) => (
                           <SelectItem key={project.id} value={project.id}>
                             {project.name}
