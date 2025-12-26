@@ -1,4 +1,4 @@
-import { LayoutDashboard, FolderKanban, FileText } from "lucide-react";
+import { LayoutDashboard, FolderKanban, FileText, ClipboardList } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -14,6 +14,7 @@ import {
 
 const menuItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
+  { title: "Demandas", url: "/demandas", icon: ClipboardList },
   { title: "Projetos", url: "/projetos", icon: FolderKanban },
   { title: "Relatórios", url: "/relatorios", icon: FileText },
 ];

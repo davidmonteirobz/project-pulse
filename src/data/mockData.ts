@@ -1,4 +1,6 @@
 export type ProjectStatus = 'a_iniciar' | 'em_andamento' | 'finalizado';
+export type DemandPriority = 'baixa' | 'media' | 'alta' | 'urgente';
+export type DemandStatus = 'aberta' | 'em_analise' | 'em_execucao' | 'concluida' | 'cancelada';
 
 export interface Stage {
   id: string;
@@ -15,6 +17,90 @@ export interface Project {
   status: ProjectStatus;
   stages: Stage[];
 }
+
+export interface Demand {
+  id: string;
+  title: string;
+  description: string;
+  responsible: string;
+  priority: DemandPriority;
+  status: DemandStatus;
+  createdAt: string;
+  dueDate: string;
+  projectId?: string;
+}
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+}
+
+export const users: User[] = [
+  { id: '1', name: 'Ana Silva', email: 'ana@empresa.com', role: 'Designer' },
+  { id: '2', name: 'Carlos Santos', email: 'carlos@empresa.com', role: 'Desenvolvedor' },
+  { id: '3', name: 'Maria Oliveira', email: 'maria@empresa.com', role: 'Gerente de Projetos' },
+  { id: '4', name: 'Pedro Costa', email: 'pedro@empresa.com', role: 'Desenvolvedor Backend' },
+  { id: '5', name: 'Juliana Mendes', email: 'juliana@empresa.com', role: 'UX Designer' },
+  { id: '6', name: 'Lucas Ferreira', email: 'lucas@empresa.com', role: 'Analista de Dados' },
+];
+
+export const demands: Demand[] = [
+  {
+    id: '1',
+    title: 'Correção de bug no login',
+    description: 'Usuários reportaram problemas ao fazer login com email corporativo.',
+    responsible: 'Carlos Santos',
+    priority: 'alta',
+    status: 'em_execucao',
+    createdAt: '2024-12-20',
+    dueDate: '2024-12-27',
+    projectId: '2',
+  },
+  {
+    id: '2',
+    title: 'Novo layout da página inicial',
+    description: 'Redesenhar a página inicial seguindo o novo guia de estilo.',
+    responsible: 'Ana Silva',
+    priority: 'media',
+    status: 'em_analise',
+    createdAt: '2024-12-22',
+    dueDate: '2025-01-10',
+    projectId: '1',
+  },
+  {
+    id: '3',
+    title: 'Integração com API de pagamentos',
+    description: 'Implementar integração com gateway de pagamentos.',
+    responsible: 'Pedro Costa',
+    priority: 'urgente',
+    status: 'em_execucao',
+    createdAt: '2024-12-18',
+    dueDate: '2024-12-26',
+    projectId: '4',
+  },
+  {
+    id: '4',
+    title: 'Documentação técnica do módulo de relatórios',
+    description: 'Criar documentação completa do módulo de relatórios.',
+    responsible: 'Lucas Ferreira',
+    priority: 'baixa',
+    status: 'aberta',
+    createdAt: '2024-12-24',
+    dueDate: '2025-01-15',
+  },
+  {
+    id: '5',
+    title: 'Otimização de performance do dashboard',
+    description: 'Melhorar tempo de carregamento do dashboard principal.',
+    responsible: 'Carlos Santos',
+    priority: 'media',
+    status: 'concluida',
+    createdAt: '2024-12-15',
+    dueDate: '2024-12-23',
+  },
+];
 
 export const projects: Project[] = [
   {
@@ -103,6 +189,27 @@ export const getStatusLabel = (status: ProjectStatus): string => {
   return labels[status];
 };
 
+export const getDemandStatusLabel = (status: DemandStatus): string => {
+  const labels: Record<DemandStatus, string> = {
+    aberta: 'Aberta',
+    em_analise: 'Em análise',
+    em_execucao: 'Em execução',
+    concluida: 'Concluída',
+    cancelada: 'Cancelada',
+  };
+  return labels[status];
+};
+
+export const getPriorityLabel = (priority: DemandPriority): string => {
+  const labels: Record<DemandPriority, string> = {
+    baixa: 'Baixa',
+    media: 'Média',
+    alta: 'Alta',
+    urgente: 'Urgente',
+  };
+  return labels[priority];
+};
+
 export const getProjectsInProgress = () => 
   projects.filter(p => p.status === 'em_andamento').length;
 
@@ -129,3 +236,6 @@ export const getTotalRegisteredHours = () => {
     return total + project.stages.reduce((stageTotal, stage) => stageTotal + stage.registeredHours, 0);
   }, 0);
 };
+
+export const getOpenDemands = () => 
+  demands.filter(d => d.status !== 'concluida' && d.status !== 'cancelada').length;
