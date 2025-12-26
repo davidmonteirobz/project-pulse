@@ -7,6 +7,7 @@ import { DemandsProvider } from "@/context/DemandsContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import Index from "./pages/Index";
 import Demandas from "./pages/Demandas";
+import Equipe from "./pages/Equipe";
 import ProjetoDetalhe from "./pages/ProjetoDetalhe";
 import Relatorios from "./pages/Relatorios";
 import Auth from "./pages/Auth";
@@ -59,6 +60,11 @@ function AppRoutes() {
       <Route path="/demandas" element={
         <ProtectedRoute adminOnly>
           <Demandas />
+        </ProtectedRoute>
+      } />
+      <Route path="/equipe" element={
+        <ProtectedRoute adminOnly>
+          <Equipe />
         </ProtectedRoute>
       } />
       <Route path="/demanda/:id" element={

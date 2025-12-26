@@ -1,7 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { 
-  users, 
   getDemandStatusLabel, 
   getPriorityLabel,
   Demand,
@@ -9,6 +8,7 @@ import {
   DemandPriority,
   DemandResponsible
 } from "@/data/mockData";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -57,11 +57,18 @@ interface ResponsibleEntry {
   responsibilities: string[];
 }
 
+interface TeamMember {
+  id: string;
+  name: string;
+  role_function: string;
+}
+
 const Demandas = () => {
   const { demands, addDemand, updateDemandStatus, deleteDemand } = useDemands();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<DemandStatus | 'todos'>('todos');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -75,6 +82,20 @@ const Demandas = () => {
   const [responsibles, setResponsibles] = useState<ResponsibleEntry[]>([
     { userId: '', responsibilities: [''] }
   ]);
+
+  useEffect(() => {
+    const fetchTeamMembers = async () => {
+      const { data, error } = await supabase
+        .from('team_members')
+        .select('id, name, role_function')
+        .order('name');
+      
+      if (!error && data) {
+        setTeamMembers(data);
+      }
+    };
+    fetchTeamMembers();
+  }, []);
 
   const filteredDemands = demands.filter((demand) => {
     const responsibleNames = demand.responsibles.map(r => r.userName.toLowerCase()).join(' ');
@@ -161,10 +182,10 @@ const Demandas = () => {
     }
 
     const demandResponsibles: DemandResponsible[] = validResponsibles.map(r => {
-      const user = users.find(u => u.id === r.userId);
+      const member = teamMembers.find(m => m.id === r.userId);
       return {
         userId: r.userId,
-        userName: user?.name || '',
+        userName: member?.name || '',
         responsibilities: r.responsibilities.filter(attr => attr.trim()).map((text, idx) => ({
           id: `${Date.now()}-${r.userId}-${idx}`,
           text,
@@ -276,9 +297,9 @@ const Demandas = () => {
                                 <SelectValue placeholder="Selecione o responsável..." />
                               </SelectTrigger>
                               <SelectContent>
-                                {users.map((user) => (
-                                  <SelectItem key={user.id} value={user.id}>
-                                    {user.name} - {user.role}
+                                {teamMembers.map((member) => (
+                                  <SelectItem key={member.id} value={member.id}>
+                                    {member.name} - {member.role_function}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
