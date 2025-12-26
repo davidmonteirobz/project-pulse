@@ -165,7 +165,12 @@ const Demandas = () => {
       return {
         userId: r.userId,
         userName: user?.name || '',
-        responsibilities: r.responsibilities.filter(attr => attr.trim()),
+        responsibilities: r.responsibilities.filter(attr => attr.trim()).map((text, idx) => ({
+          id: `${Date.now()}-${r.userId}-${idx}`,
+          text,
+          completed: false
+        })),
+        hoursWorked: 0
       };
     });
 
@@ -459,7 +464,9 @@ const Demandas = () => {
                                 <span className="font-medium">{resp.userName}</span>
                               </div>
                               <div className="pl-6 text-muted-foreground">
-                                {Array.isArray(resp.responsibilities) ? resp.responsibilities.join(', ') : resp.responsibilities || ''}
+                                {Array.isArray(resp.responsibilities) 
+                                  ? resp.responsibilities.map(r => typeof r === 'string' ? r : r.text).join(', ') 
+                                  : ''}
                               </div>
                             </div>
                           ))}
