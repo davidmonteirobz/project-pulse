@@ -3,10 +3,8 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { 
   getDemandStatusLabel, 
   getPriorityLabel,
-  Demand,
   DemandStatus,
-  DemandPriority,
-  DemandResponsible
+  DemandPriority
 } from "@/data/mockData";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -53,7 +51,7 @@ const statusFilters: { value: DemandStatus | 'todos'; label: string }[] = [
 ];
 
 interface ResponsibleEntry {
-  userId: string;
+  teamMemberId: string;
   responsibilities: string[];
 }
 
@@ -64,11 +62,12 @@ interface TeamMember {
 }
 
 const Demandas = () => {
-  const { demands, addDemand, updateDemandStatus, deleteDemand } = useDemands();
+  const { demands, loading, addDemand, updateDemandStatus, deleteDemand } = useDemands();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<DemandStatus | 'todos'>('todos');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [submitting, setSubmitting] = useState(false);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -80,7 +79,7 @@ const Demandas = () => {
   });
   
   const [responsibles, setResponsibles] = useState<ResponsibleEntry[]>([
-    { userId: '', responsibilities: [''] }
+    { teamMemberId: '', responsibilities: [''] }
   ]);
 
   useEffect(() => {
@@ -98,7 +97,7 @@ const Demandas = () => {
   }, []);
 
   const filteredDemands = demands.filter((demand) => {
-    const responsibleNames = demand.responsibles.map(r => r.userName.toLowerCase()).join(' ');
+    const responsibleNames = demand.responsibles.map(r => r.teamMemberName.toLowerCase()).join(' ');
     const matchesSearch = demand.title.toLowerCase().includes(search.toLowerCase()) ||
       responsibleNames.includes(search.toLowerCase());
     const matchesStatus = statusFilter === 'todos' || demand.status === statusFilter;
@@ -128,6 +127,7 @@ const Demandas = () => {
   };
 
   const formatDate = (dateStr: string) => {
+    if (!dateStr) return '-';
     return new Date(dateStr).toLocaleDateString('pt-BR', {
       day: '2-digit',
       month: '2-digit',
@@ -136,7 +136,7 @@ const Demandas = () => {
   };
 
   const addResponsible = () => {
-    setResponsibles([...responsibles, { userId: '', responsibilities: [''] }]);
+    setResponsibles([...responsibles, { teamMemberId: '', responsibilities: [''] }]);
   };
 
   const removeResponsible = (index: number) => {
@@ -145,9 +145,9 @@ const Demandas = () => {
     }
   };
 
-  const updateResponsibleUser = (index: number, userId: string) => {
+  const updateResponsibleUser = (index: number, teamMemberId: string) => {
     const updated = [...responsibles];
-    updated[index] = { ...updated[index], userId };
+    updated[index] = { ...updated[index], teamMemberId };
     setResponsibles(updated);
   };
 
@@ -171,63 +171,63 @@ const Demandas = () => {
     setResponsibles(updated);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const validResponsibles = responsibles.filter(r => r.userId && r.responsibilities.some(attr => attr.trim()));
+    const validResponsibles = responsibles.filter(r => r.teamMemberId && r.responsibilities.some(attr => attr.trim()));
     
     if (!formData.title || validResponsibles.length === 0 || !formData.startDate || !formData.dueDate) {
       toast.error("Preencha todos os campos obrigatórios.");
       return;
     }
 
-    const demandResponsibles: DemandResponsible[] = validResponsibles.map(r => {
-      const member = teamMembers.find(m => m.id === r.userId);
-      return {
-        userId: r.userId,
-        userName: member?.name || '',
-        responsibilities: r.responsibilities.filter(attr => attr.trim()).map((text, idx) => ({
-          id: `${Date.now()}-${r.userId}-${idx}`,
-          text,
-          completed: false,
-          hoursWorked: 0
+    setSubmitting(true);
+    try {
+      await addDemand({
+        title: formData.title,
+        description: formData.description,
+        priority: formData.priority,
+        startDate: formData.startDate,
+        dueDate: formData.dueDate,
+        responsibles: validResponsibles.map(r => ({
+          teamMemberId: r.teamMemberId,
+          responsibilities: r.responsibilities.filter(attr => attr.trim())
         }))
-      };
-    });
+      });
 
-    const newDemand: Demand = {
-      id: String(Date.now()),
-      title: formData.title,
-      description: formData.description,
-      responsibles: demandResponsibles,
-      priority: formData.priority,
-      status: 'aberta',
-      createdAt: new Date().toISOString().split('T')[0],
-      startDate: formData.startDate,
-      dueDate: formData.dueDate,
-    };
-
-    addDemand(newDemand);
-    setFormData({
-      title: '',
-      description: '',
-      priority: 'media',
-      startDate: '',
-      dueDate: '',
-    });
-    setResponsibles([{ userId: '', responsibilities: [''] }]);
-    setIsDialogOpen(false);
-    toast.success("Demanda criada com sucesso!");
+      setFormData({
+        title: '',
+        description: '',
+        priority: 'media',
+        startDate: '',
+        dueDate: '',
+      });
+      setResponsibles([{ teamMemberId: '', responsibilities: [''] }]);
+      setIsDialogOpen(false);
+      toast.success("Demanda criada com sucesso!");
+    } catch (error) {
+      toast.error("Erro ao criar demanda.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const handleStatusChange = (demandId: string, newStatus: DemandStatus) => {
-    updateDemandStatus(demandId, newStatus);
-    toast.success("Status atualizado!");
+  const handleStatusChange = async (demandId: string, newStatus: DemandStatus) => {
+    try {
+      await updateDemandStatus(demandId, newStatus);
+      toast.success("Status atualizado!");
+    } catch (error) {
+      toast.error("Erro ao atualizar status.");
+    }
   };
 
-  const handleDelete = (demandId: string) => {
-    deleteDemand(demandId);
-    toast.success("Demanda excluída!");
+  const handleDelete = async (demandId: string) => {
+    try {
+      await deleteDemand(demandId);
+      toast.success("Demanda excluída!");
+    } catch (error) {
+      toast.error("Erro ao excluir demanda.");
+    }
   };
 
   return (
@@ -264,7 +264,7 @@ const Demandas = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="description">Descrição *</Label>
+                  <Label htmlFor="description">Descrição</Label>
                   <Textarea
                     id="description"
                     value={formData.description}
@@ -290,7 +290,7 @@ const Demandas = () => {
                         <div className="flex gap-2 items-start">
                           <div className="flex-1">
                             <Select 
-                              value={resp.userId} 
+                              value={resp.teamMemberId} 
                               onValueChange={(value) => updateResponsibleUser(respIndex, value)}
                             >
                               <SelectTrigger>
@@ -402,7 +402,9 @@ const Demandas = () => {
                   <DialogClose asChild>
                     <Button type="button" variant="outline">Cancelar</Button>
                   </DialogClose>
-                  <Button type="submit">Criar Demanda</Button>
+                  <Button type="submit" disabled={submitting}>
+                    {submitting ? 'Criando...' : 'Criar Demanda'}
+                  </Button>
                 </DialogFooter>
               </form>
             </DialogContent>
@@ -446,7 +448,11 @@ const Demandas = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {filteredDemands.length === 0 ? (
+            {loading ? (
+              <div className="py-12 text-center">
+                <p className="text-muted-foreground">Carregando...</p>
+              </div>
+            ) : filteredDemands.length === 0 ? (
               <div className="py-12 text-center">
                 <AlertCircle className="w-12 h-12 mx-auto mb-3 text-muted-foreground opacity-30" />
                 <p className="text-muted-foreground">Nenhuma demanda encontrada.</p>
@@ -482,12 +488,10 @@ const Demandas = () => {
                             <div key={idx} className="text-sm">
                               <div className="flex items-center gap-2">
                                 <Users className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                                <span className="font-medium">{resp.userName}</span>
+                                <span className="font-medium">{resp.teamMemberName}</span>
                               </div>
                               <div className="pl-6 text-muted-foreground">
-                                {Array.isArray(resp.responsibilities) 
-                                  ? resp.responsibilities.map(r => typeof r === 'string' ? r : r.text).join(', ') 
-                                  : ''}
+                                {resp.responsibilities.map(r => r.text).join(', ')}
                               </div>
                             </div>
                           ))}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useDemands } from "@/context/DemandsContext";
@@ -11,15 +11,34 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar, Timer, ChevronRight, ClipboardList, AlertTriangle } from "lucide-react";
 import { getDemandStatusLabel, getPriorityLabel, DemandStatus } from "@/data/mockData";
+import { supabase } from "@/integrations/supabase/client";
 
 const MinhasDemandas = () => {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const { demands, toggleResponsibility, updateTaskHours } = useDemands();
   const navigate = useNavigate();
+  const [myTeamMemberId, setMyTeamMemberId] = useState<string | null>(null);
 
-  // Filter demands where current user is a responsible
+  useEffect(() => {
+    const fetchMyTeamMemberId = async () => {
+      if (!user?.id) return;
+      
+      const { data } = await supabase
+        .from('team_members')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      if (data) {
+        setMyTeamMemberId(data.id);
+      }
+    };
+    fetchMyTeamMemberId();
+  }, [user?.id]);
+
+  // Filter demands where current user is a responsible (by team member id)
   const myDemands = demands.filter(d => 
-    d.responsibles.some(r => r.userName === profile?.name) &&
+    d.responsibles.some(r => r.teamMemberId === myTeamMemberId) &&
     d.status !== 'concluida' && d.status !== 'cancelada'
   );
 
@@ -60,6 +79,7 @@ const MinhasDemandas = () => {
   };
 
   const formatDate = (dateStr: string) => {
+    if (!dateStr) return '-';
     return new Date(dateStr).toLocaleDateString('pt-BR', {
       day: '2-digit',
       month: '2-digit',
@@ -68,12 +88,10 @@ const MinhasDemandas = () => {
   };
 
   const renderDemandCard = (demand: typeof myDemands[0]) => {
-    const myResponsible = demand.responsibles.find(r => r.userName === profile?.name);
+    const myResponsible = demand.responsibles.find(r => r.teamMemberId === myTeamMemberId);
     if (!myResponsible) return null;
 
-    const responsibilities = Array.isArray(myResponsible.responsibilities) 
-      ? myResponsible.responsibilities 
-      : [];
+    const responsibilities = myResponsible.responsibilities || [];
     const completedCount = responsibilities.filter(r => r.completed).length;
     const totalCount = responsibilities.length;
     const totalHours = responsibilities.reduce((sum, r) => sum + (r.hoursWorked || 0), 0);
@@ -121,7 +139,7 @@ const MinhasDemandas = () => {
                 <Checkbox
                   id={item.id}
                   checked={item.completed}
-                  onCheckedChange={() => toggleResponsibility(demand.id, myResponsible.userId, item.id)}
+                  onCheckedChange={() => toggleResponsibility(item.id)}
                 />
                 <label 
                   htmlFor={item.id}
@@ -135,7 +153,7 @@ const MinhasDemandas = () => {
                     min="0"
                     step="0.5"
                     value={item.hoursWorked || 0}
-                    onChange={(e) => updateTaskHours(demand.id, myResponsible.userId, item.id, parseFloat(e.target.value) || 0)}
+                    onChange={(e) => updateTaskHours(item.id, parseFloat(e.target.value) || 0)}
                     className="w-20 text-center"
                   />
                   <span className="text-sm text-muted-foreground">h</span>
@@ -147,6 +165,29 @@ const MinhasDemandas = () => {
       </Card>
     );
   };
+
+  if (!myTeamMemberId) {
+    return (
+      <AppLayout>
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Minhas Demandas</h1>
+            <p className="text-muted-foreground">
+              Olá, {profile?.name}!
+            </p>
+          </div>
+          <Card className="shadow-sm">
+            <CardContent className="py-8 text-center">
+              <p className="text-muted-foreground">
+                Você ainda não está vinculado a um membro da equipe. 
+                Peça ao administrador para vincular seu usuário.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
