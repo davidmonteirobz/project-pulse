@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { 
-  demands as initialDemands, 
   users, 
   getDemandStatusLabel, 
   getPriorityLabel,
@@ -42,6 +41,7 @@ import {
 } from "@/components/ui/table";
 import { Search, Plus, Calendar, AlertCircle, X, Users, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { useDemands } from "@/context/DemandsContext";
 
 const statusFilters: { value: DemandStatus | 'todos'; label: string }[] = [
   { value: 'todos', label: 'Todos' },
@@ -58,7 +58,7 @@ interface ResponsibleEntry {
 }
 
 const Demandas = () => {
-  const [demands, setDemands] = useState<Demand[]>(initialDemands);
+  const { demands, addDemand, updateDemandStatus, deleteDemand } = useDemands();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<DemandStatus | 'todos'>('todos');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -161,7 +161,7 @@ const Demandas = () => {
       dueDate: formData.dueDate,
     };
 
-    setDemands([newDemand, ...demands]);
+    addDemand(newDemand);
     setFormData({
       title: '',
       description: '',
@@ -175,14 +175,12 @@ const Demandas = () => {
   };
 
   const handleStatusChange = (demandId: string, newStatus: DemandStatus) => {
-    setDemands(demands.map(d => 
-      d.id === demandId ? { ...d, status: newStatus } : d
-    ));
+    updateDemandStatus(demandId, newStatus);
     toast.success("Status atualizado!");
   };
 
   const handleDelete = (demandId: string) => {
-    setDemands(demands.filter(d => d.id !== demandId));
+    deleteDemand(demandId);
     toast.success("Demanda excluída!");
   };
 

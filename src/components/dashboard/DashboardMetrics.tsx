@@ -1,11 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FolderKanban, AlertTriangle, Calendar, Clock } from "lucide-react";
-import { 
-  getProjectsInProgress, 
-  getDelayedProjects, 
-  getDeliveriesThisWeek, 
-  getTotalRegisteredHours 
-} from "@/data/mockData";
+import { ClipboardList, AlertTriangle, Calendar, Clock } from "lucide-react";
+import { useDemands } from "@/context/DemandsContext";
 
 interface MetricCardProps {
   title: string;
@@ -43,25 +38,43 @@ function MetricCard({ title, value, icon, description, variant = "default" }: Me
 }
 
 export function DashboardMetrics() {
-  const projectsInProgress = getProjectsInProgress();
-  const delayedProjects = getDelayedProjects();
-  const deliveriesThisWeek = getDeliveriesThisWeek();
-  const totalHours = getTotalRegisteredHours();
+  const { demands } = useDemands();
+
+  const demandsInProgress = demands.filter(d => 
+    d.status === 'em_execucao' || d.status === 'em_analise'
+  ).length;
+
+  const delayedDemands = demands.filter(d => {
+    const today = new Date();
+    return d.status !== 'concluida' && d.status !== 'cancelada' && new Date(d.dueDate) < today;
+  }).length;
+
+  const deliveriesThisWeek = demands.filter(d => {
+    const today = new Date();
+    const weekFromNow = new Date(today);
+    weekFromNow.setDate(today.getDate() + 7);
+    const dueDate = new Date(d.dueDate);
+    return dueDate >= today && dueDate <= weekFromNow && d.status !== 'concluida' && d.status !== 'cancelada';
+  }).length;
+
+  const openDemands = demands.filter(d => 
+    d.status !== 'concluida' && d.status !== 'cancelada'
+  ).length;
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <MetricCard
-        title="Projetos em Andamento"
-        value={projectsInProgress}
-        icon={<FolderKanban className="h-5 w-5" />}
-        description="Projetos ativos no momento"
+        title="Demandas em Andamento"
+        value={demandsInProgress}
+        icon={<ClipboardList className="h-5 w-5" />}
+        description="Em execução ou análise"
       />
       <MetricCard
-        title="Projetos Atrasados"
-        value={delayedProjects}
+        title="Demandas Atrasadas"
+        value={delayedDemands}
         icon={<AlertTriangle className="h-5 w-5" />}
         description="Precisam de atenção"
-        variant={delayedProjects > 0 ? "warning" : "default"}
+        variant={delayedDemands > 0 ? "warning" : "default"}
       />
       <MetricCard
         title="Entregas da Semana"
@@ -70,10 +83,10 @@ export function DashboardMetrics() {
         description="Próximos 7 dias"
       />
       <MetricCard
-        title="Horas Registradas"
-        value={`${totalHours}h`}
+        title="Demandas Abertas"
+        value={openDemands}
         icon={<Clock className="h-5 w-5" />}
-        description="Total em todos os projetos"
+        description="Total não concluídas"
         variant="success"
       />
     </div>
