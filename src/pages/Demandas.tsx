@@ -40,7 +40,7 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { Search, Plus, Calendar, User, AlertCircle, X, Users } from "lucide-react";
+import { Search, Plus, Calendar, AlertCircle, X, Users, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 const statusFilters: { value: DemandStatus | 'todos'; label: string }[] = [
@@ -48,6 +48,7 @@ const statusFilters: { value: DemandStatus | 'todos'; label: string }[] = [
   { value: 'aberta', label: 'Aberta' },
   { value: 'em_analise', label: 'Em análise' },
   { value: 'em_execucao', label: 'Em execução' },
+  { value: 'em_pausa', label: 'Em pausa' },
   { value: 'concluida', label: 'Concluída' },
 ];
 
@@ -88,6 +89,7 @@ const Demandas = () => {
       case 'em_execucao': return 'default';
       case 'em_analise': return 'secondary';
       case 'aberta': return 'outline';
+      case 'em_pausa': return 'secondary';
       case 'concluida': return 'default';
       case 'cancelada': return 'destructive';
       default: return 'default';
@@ -177,6 +179,11 @@ const Demandas = () => {
       d.id === demandId ? { ...d, status: newStatus } : d
     ));
     toast.success("Status atualizado!");
+  };
+
+  const handleDelete = (demandId: string) => {
+    setDemands(demands.filter(d => d.id !== demandId));
+    toast.success("Demanda excluída!");
   };
 
   return (
@@ -425,21 +432,32 @@ const Demandas = () => {
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Select 
-                          value={demand.status}
-                          onValueChange={(value) => handleStatusChange(demand.id, value as DemandStatus)}
-                        >
-                          <SelectTrigger className="w-[140px]">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="aberta">Aberta</SelectItem>
-                            <SelectItem value="em_analise">Em análise</SelectItem>
-                            <SelectItem value="em_execucao">Em execução</SelectItem>
-                            <SelectItem value="concluida">Concluída</SelectItem>
-                            <SelectItem value="cancelada">Cancelada</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <div className="flex items-center justify-end gap-2">
+                          <Select 
+                            value={demand.status}
+                            onValueChange={(value) => handleStatusChange(demand.id, value as DemandStatus)}
+                          >
+                            <SelectTrigger className="w-[140px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="aberta">Aberta</SelectItem>
+                              <SelectItem value="em_analise">Em análise</SelectItem>
+                              <SelectItem value="em_execucao">Em execução</SelectItem>
+                              <SelectItem value="em_pausa">Em pausa</SelectItem>
+                              <SelectItem value="concluida">Concluída</SelectItem>
+                              <SelectItem value="cancelada">Cancelada</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(demand.id)}
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
