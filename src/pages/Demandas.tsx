@@ -168,9 +168,9 @@ const Demandas = () => {
         responsibilities: r.responsibilities.filter(attr => attr.trim()).map((text, idx) => ({
           id: `${Date.now()}-${r.userId}-${idx}`,
           text,
-          completed: false
-        })),
-        hoursWorked: 0
+          completed: false,
+          hoursWorked: 0
+        }))
       };
     });
 
