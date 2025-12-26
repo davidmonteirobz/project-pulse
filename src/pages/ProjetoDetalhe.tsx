@@ -1,7 +1,6 @@
-import { useState, useEffect, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { projects, getStatusLabel, Project, Stage } from "@/data/mockData";
+import { projects, getStatusLabel } from "@/data/mockData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,50 +12,11 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { ArrowLeft, Calendar, User, Play, Pause, Clock } from "lucide-react";
+import { ArrowLeft, Calendar, User, Clock } from "lucide-react";
 
 const ProjetoDetalhe = () => {
   const { id } = useParams<{ id: string }>();
   const project = projects.find((p) => p.id === id);
-  
-  const [activeStage, setActiveStage] = useState<string | null>(null);
-  const [timer, setTimer] = useState(0);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    if (activeStage) {
-      intervalRef.current = setInterval(() => {
-        setTimer((prev) => prev + 1);
-      }, 1000);
-    } else {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    }
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, [activeStage]);
-
-  const formatTime = (seconds: number) => {
-    const hrs = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const handleToggleTimer = (stageId: string) => {
-    if (activeStage === stageId) {
-      setActiveStage(null);
-      setTimer(0);
-    } else {
-      setActiveStage(stageId);
-      setTimer(0);
-    }
-  };
 
   const getStatusVariant = (status: string) => {
     switch (status) {
@@ -152,26 +112,6 @@ const ProjetoDetalhe = () => {
           </CardContent>
         </Card>
 
-        {/* Timer Display */}
-        {activeStage && (
-          <Card className="shadow-sm border-l-4 border-l-chart-2">
-            <CardContent className="py-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 bg-chart-2 rounded-full animate-pulse" />
-                  <span className="text-muted-foreground">Cronômetro ativo:</span>
-                  <span className="font-medium text-foreground">
-                    {project.stages.find(s => s.id === activeStage)?.name}
-                  </span>
-                </div>
-                <span className="text-2xl font-mono font-bold text-foreground">
-                  {formatTime(timer)}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
         {/* Stages Table */}
         <Card className="shadow-sm">
           <CardHeader>
@@ -185,16 +125,14 @@ const ProjetoDetalhe = () => {
                   <TableHead className="text-center">Horas Estimadas</TableHead>
                   <TableHead className="text-center">Horas Registradas</TableHead>
                   <TableHead className="text-center">Progresso</TableHead>
-                  <TableHead className="text-right">Ação</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {project.stages.map((stage) => {
                   const stageProgress = Math.round((stage.registeredHours / stage.estimatedHours) * 100);
-                  const isActive = activeStage === stage.id;
                   
                   return (
-                    <TableRow key={stage.id} className={isActive ? "bg-accent/50" : ""}>
+                    <TableRow key={stage.id}>
                       <TableCell className="font-medium">{stage.name}</TableCell>
                       <TableCell className="text-center">{stage.estimatedHours}h</TableCell>
                       <TableCell className="text-center">{stage.registeredHours}h</TableCell>
@@ -208,25 +146,6 @@ const ProjetoDetalhe = () => {
                           </div>
                           <span className="text-sm text-muted-foreground w-12">{stageProgress}%</span>
                         </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          variant={isActive ? "default" : "outline"}
-                          onClick={() => handleToggleTimer(stage.id)}
-                        >
-                          {isActive ? (
-                            <>
-                              <Pause className="w-4 h-4 mr-1" />
-                              Parar
-                            </>
-                          ) : (
-                            <>
-                              <Play className="w-4 h-4 mr-1" />
-                              Iniciar
-                            </>
-                          )}
-                        </Button>
                       </TableCell>
                     </TableRow>
                   );
