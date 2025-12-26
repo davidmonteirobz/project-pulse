@@ -1,6 +1,6 @@
 export type ProjectStatus = 'a_iniciar' | 'em_andamento' | 'finalizado';
 export type DemandPriority = 'baixa' | 'media' | 'alta' | 'urgente';
-export type DemandStatus = 'aberta' | 'em_analise' | 'em_execucao' | 'concluida' | 'cancelada';
+export type DemandStatus = 'aberta' | 'em_analise' | 'em_execucao' | 'em_pausa' | 'concluida' | 'cancelada';
 
 export interface Stage {
   id: string;
@@ -215,6 +215,7 @@ export const getDemandStatusLabel = (status: DemandStatus): string => {
     aberta: 'Aberta',
     em_analise: 'Em análise',
     em_execucao: 'Em execução',
+    em_pausa: 'Em pausa',
     concluida: 'Concluída',
     cancelada: 'Cancelada',
   };
