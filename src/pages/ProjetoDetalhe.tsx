@@ -4,12 +4,15 @@ import { getDemandStatusLabel, getPriorityLabel } from "@/data/mockData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Calendar, Users, Clock, FileText } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { ArrowLeft, Calendar, Clock, FileText, Users, Timer } from "lucide-react";
 import { useDemands } from "@/context/DemandsContext";
 
 const ProjetoDetalhe = () => {
   const { id } = useParams<{ id: string }>();
-  const { demands } = useDemands();
+  const { demands, toggleResponsibility, updateHoursWorked } = useDemands();
   const demand = demands.find((d) => d.id === id);
 
   const getStatusVariant = (status: string) => {
@@ -42,6 +45,15 @@ const ProjetoDetalhe = () => {
     });
   };
 
+  const getTotalHours = () => {
+    if (!demand) return 0;
+    return demand.responsibles.reduce((sum, r) => sum + (r.hoursWorked || 0), 0);
+  };
+
+  const getCompletedCount = (responsibilities: { completed: boolean }[]) => {
+    return responsibilities.filter(r => r.completed).length;
+  };
+
   if (!demand) {
     return (
       <AppLayout>
@@ -69,7 +81,7 @@ const ProjetoDetalhe = () => {
           </Button>
         </Link>
 
-        {/* Demand Info */}
+        {/* Header */}
         <Card className="shadow-sm">
           <CardHeader>
             <div className="flex items-start justify-between flex-wrap gap-4">
@@ -86,82 +98,147 @@ const ProjetoDetalhe = () => {
                   </Badge>
                 </div>
               </div>
+              <div className="flex items-center gap-2 bg-accent/50 px-4 py-2 rounded-lg">
+                <Timer className="w-5 h-5 text-primary" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Total de Horas</p>
+                  <p className="text-lg font-bold text-foreground">{getTotalHours()}h</p>
+                </div>
+              </div>
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
-                  <Calendar className="w-5 h-5 text-foreground" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Período</p>
-                  <p className="font-medium text-foreground">
-                    {formatDate(demand.startDate)} - {formatDate(demand.dueDate)}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
-                  <Clock className="w-5 h-5 text-foreground" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Criado em</p>
-                  <p className="font-medium text-foreground">{formatDate(demand.createdAt)}</p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
         </Card>
 
-        {/* Description */}
-        {demand.description && (
-          <Card className="shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
-                <FileText className="w-5 h-5" />
-                Descrição
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-foreground whitespace-pre-wrap">{demand.description}</p>
-            </CardContent>
-          </Card>
-        )}
+        {/* Tabs */}
+        <Tabs defaultValue="projeto" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="projeto">Projeto</TabsTrigger>
+            <TabsTrigger value="responsaveis">Responsáveis</TabsTrigger>
+          </TabsList>
 
-        {/* Responsibles */}
-        <Card className="shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
-              <Users className="w-5 h-5" />
-              Responsáveis
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {demand.responsibles.map((resp, idx) => (
-                <div key={idx} className="flex items-start gap-4 p-4 rounded-lg border border-border bg-muted/30">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <span className="text-primary font-semibold">
-                      {resp.userName.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                    </span>
+          {/* Tab: Projeto */}
+          <TabsContent value="projeto" className="space-y-4 mt-4">
+            <Card className="shadow-sm">
+              <CardContent className="pt-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
+                      <Calendar className="w-5 h-5 text-foreground" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Período</p>
+                      <p className="font-medium text-foreground">
+                        {formatDate(demand.startDate)} - {formatDate(demand.dueDate)}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground">{resp.userName}</p>
-                    <div className="mt-1 space-y-1">
-                      {(Array.isArray(resp.responsibilities) ? resp.responsibilities : [resp.responsibilities || '']).map((attr, attrIdx) => (
-                        <p key={attrIdx} className="text-sm text-muted-foreground flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 rounded-full bg-primary/50" />
-                          {attr}
-                        </p>
-                      ))}
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
+                      <Clock className="w-5 h-5 text-foreground" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Criado em</p>
+                      <p className="font-medium text-foreground">{formatDate(demand.createdAt)}</p>
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+
+            {demand.description && (
+              <Card className="shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
+                    <FileText className="w-5 h-5" />
+                    Descrição
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-foreground whitespace-pre-wrap">{demand.description}</p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          {/* Tab: Responsáveis */}
+          <TabsContent value="responsaveis" className="space-y-4 mt-4">
+            {demand.responsibles.map((resp) => {
+              const responsibilities = Array.isArray(resp.responsibilities) 
+                ? resp.responsibilities 
+                : [];
+              const completedCount = getCompletedCount(responsibilities);
+              const totalCount = responsibilities.length;
+
+              return (
+                <Card key={resp.userId} className="shadow-sm">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between flex-wrap gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <span className="text-primary font-semibold">
+                            {resp.userName.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="font-medium text-foreground">{resp.userName}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {completedCount}/{totalCount} atribuições concluídas
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.5"
+                          value={resp.hoursWorked || 0}
+                          onChange={(e) => updateHoursWorked(demand.id, resp.userId, parseFloat(e.target.value) || 0)}
+                          className="w-20 text-center"
+                        />
+                        <span className="text-sm text-muted-foreground">horas</span>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {responsibilities.map((item) => (
+                        <div 
+                          key={item.id} 
+                          className="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/30 hover:bg-muted/50 transition-colors"
+                        >
+                          <Checkbox
+                            id={item.id}
+                            checked={item.completed}
+                            onCheckedChange={() => toggleResponsibility(demand.id, resp.userId, item.id)}
+                          />
+                          <label 
+                            htmlFor={item.id}
+                            className={`flex-1 cursor-pointer ${item.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}
+                          >
+                            {item.text}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+
+            {/* Total Hours Summary */}
+            <Card className="shadow-sm bg-primary/5 border-primary/20">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Users className="w-5 h-5 text-primary" />
+                    <span className="font-medium text-foreground">Total Geral de Horas</span>
+                  </div>
+                  <span className="text-2xl font-bold text-primary">{getTotalHours()}h</span>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </AppLayout>
   );

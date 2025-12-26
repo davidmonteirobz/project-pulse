@@ -6,6 +6,8 @@ interface DemandsContextType {
   addDemand: (demand: Demand) => void;
   updateDemandStatus: (demandId: string, status: DemandStatus) => void;
   deleteDemand: (demandId: string) => void;
+  toggleResponsibility: (demandId: string, responsibleUserId: string, responsibilityId: string) => void;
+  updateHoursWorked: (demandId: string, responsibleUserId: string, hours: number) => void;
 }
 
 const DemandsContext = createContext<DemandsContextType | undefined>(undefined);
@@ -27,8 +29,45 @@ export function DemandsProvider({ children }: { children: ReactNode }) {
     setDemands(prev => prev.filter(d => d.id !== demandId));
   };
 
+  const toggleResponsibility = (demandId: string, responsibleUserId: string, responsibilityId: string) => {
+    setDemands(prev => prev.map(d => {
+      if (d.id !== demandId) return d;
+      return {
+        ...d,
+        responsibles: d.responsibles.map(resp => {
+          if (resp.userId !== responsibleUserId) return resp;
+          return {
+            ...resp,
+            responsibilities: resp.responsibilities.map(r => 
+              r.id === responsibilityId ? { ...r, completed: !r.completed } : r
+            )
+          };
+        })
+      };
+    }));
+  };
+
+  const updateHoursWorked = (demandId: string, responsibleUserId: string, hours: number) => {
+    setDemands(prev => prev.map(d => {
+      if (d.id !== demandId) return d;
+      return {
+        ...d,
+        responsibles: d.responsibles.map(resp => 
+          resp.userId === responsibleUserId ? { ...resp, hoursWorked: hours } : resp
+        )
+      };
+    }));
+  };
+
   return (
-    <DemandsContext.Provider value={{ demands, addDemand, updateDemandStatus, deleteDemand }}>
+    <DemandsContext.Provider value={{ 
+      demands, 
+      addDemand, 
+      updateDemandStatus, 
+      deleteDemand,
+      toggleResponsibility,
+      updateHoursWorked
+    }}>
       {children}
     </DemandsContext.Provider>
   );

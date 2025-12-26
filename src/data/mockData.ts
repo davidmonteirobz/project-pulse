@@ -18,10 +18,17 @@ export interface Project {
   stages: Stage[];
 }
 
+export interface ResponsibilityItem {
+  id: string;
+  text: string;
+  completed: boolean;
+}
+
 export interface DemandResponsible {
   userId: string;
   userName: string;
-  responsibilities: string[];
+  responsibilities: ResponsibilityItem[];
+  hoursWorked: number;
 }
 
 export interface Demand {
@@ -58,8 +65,13 @@ export const demands: Demand[] = [
     title: 'Correção de bug no login',
     description: 'Usuários reportaram problemas ao fazer login com email corporativo.',
     responsibles: [
-      { userId: '2', userName: 'Carlos Santos', responsibilities: ['Desenvolvimento e correção', 'Testes unitários'] },
-      { userId: '4', userName: 'Pedro Costa', responsibilities: ['Revisão de código'] },
+      { userId: '2', userName: 'Carlos Santos', responsibilities: [
+        { id: '1-1', text: 'Desenvolvimento e correção', completed: true },
+        { id: '1-2', text: 'Testes unitários', completed: false }
+      ], hoursWorked: 8 },
+      { userId: '4', userName: 'Pedro Costa', responsibilities: [
+        { id: '1-3', text: 'Revisão de código', completed: false }
+      ], hoursWorked: 2 },
     ],
     priority: 'alta',
     status: 'em_execucao',
@@ -72,8 +84,13 @@ export const demands: Demand[] = [
     title: 'Novo layout da página inicial',
     description: 'Redesenhar a página inicial seguindo o novo guia de estilo.',
     responsibles: [
-      { userId: '1', userName: 'Ana Silva', responsibilities: ['Design visual', 'Criação de assets'] },
-      { userId: '5', userName: 'Juliana Mendes', responsibilities: ['UX e prototipagem'] },
+      { userId: '1', userName: 'Ana Silva', responsibilities: [
+        { id: '2-1', text: 'Design visual', completed: true },
+        { id: '2-2', text: 'Criação de assets', completed: false }
+      ], hoursWorked: 12 },
+      { userId: '5', userName: 'Juliana Mendes', responsibilities: [
+        { id: '2-3', text: 'UX e prototipagem', completed: true }
+      ], hoursWorked: 6 },
     ],
     priority: 'media',
     status: 'em_analise',
@@ -86,7 +103,10 @@ export const demands: Demand[] = [
     title: 'Integração com API de pagamentos',
     description: 'Implementar integração com gateway de pagamentos.',
     responsibles: [
-      { userId: '4', userName: 'Pedro Costa', responsibilities: ['Implementação backend', 'Documentação da API'] },
+      { userId: '4', userName: 'Pedro Costa', responsibilities: [
+        { id: '3-1', text: 'Implementação backend', completed: true },
+        { id: '3-2', text: 'Documentação da API', completed: false }
+      ], hoursWorked: 20 },
     ],
     priority: 'urgente',
     status: 'em_execucao',
@@ -99,7 +119,9 @@ export const demands: Demand[] = [
     title: 'Documentação técnica do módulo de relatórios',
     description: 'Criar documentação completa do módulo de relatórios.',
     responsibles: [
-      { userId: '6', userName: 'Lucas Ferreira', responsibilities: ['Documentação e exemplos'] },
+      { userId: '6', userName: 'Lucas Ferreira', responsibilities: [
+        { id: '4-1', text: 'Documentação e exemplos', completed: false }
+      ], hoursWorked: 0 },
     ],
     priority: 'baixa',
     status: 'aberta',
@@ -112,8 +134,12 @@ export const demands: Demand[] = [
     title: 'Otimização de performance do dashboard',
     description: 'Melhorar tempo de carregamento do dashboard principal.',
     responsibles: [
-      { userId: '2', userName: 'Carlos Santos', responsibilities: ['Análise e otimização'] },
-      { userId: '6', userName: 'Lucas Ferreira', responsibilities: ['Métricas e monitoramento'] },
+      { userId: '2', userName: 'Carlos Santos', responsibilities: [
+        { id: '5-1', text: 'Análise e otimização', completed: true }
+      ], hoursWorked: 10 },
+      { userId: '6', userName: 'Lucas Ferreira', responsibilities: [
+        { id: '5-2', text: 'Métricas e monitoramento', completed: true }
+      ], hoursWorked: 5 },
     ],
     priority: 'media',
     status: 'concluida',
