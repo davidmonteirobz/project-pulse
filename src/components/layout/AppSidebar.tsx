@@ -1,5 +1,7 @@
-import { LayoutDashboard, FolderKanban, FileText, ClipboardList } from "lucide-react";
+import { LayoutDashboard, FolderKanban, FileText, ClipboardList, User, LogOut } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
+import { useAuth } from "@/context/AuthContext";
+import { Button } from "@/components/ui/button";
 import {
   Sidebar,
   SidebarContent,
@@ -10,15 +12,28 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarHeader,
+  SidebarFooter,
 } from "@/components/ui/sidebar";
 
-const menuItems = [
+const adminMenuItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Demandas", url: "/demandas", icon: ClipboardList },
   { title: "Relatórios", url: "/relatorios", icon: FileText },
 ];
 
+const responsavelMenuItems = [
+  { title: "Minhas Demandas", url: "/minhas-demandas", icon: ClipboardList },
+];
+
 export function AppSidebar() {
+  const { role, profile, signOut } = useAuth();
+
+  const menuItems = role === 'admin' ? adminMenuItems : responsavelMenuItems;
+
+  const handleSignOut = async () => {
+    await signOut();
+  };
+
   return (
     <Sidebar className="border-r border-border">
       <SidebarHeader className="h-16 flex items-center justify-center border-b border-border">
@@ -41,7 +56,7 @@ export function AppSidebar() {
                   <SidebarMenuButton asChild>
                     <NavLink 
                       to={item.url} 
-                      end={item.url === "/"}
+                      end={item.url === "/" || item.url === "/minhas-demandas"}
                       className="flex items-center gap-3 px-3 py-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                       activeClassName="bg-accent text-foreground font-medium"
                     >
@@ -55,6 +70,23 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter className="border-t border-border p-4">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+            <User className="w-4 h-4 text-primary" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-foreground truncate">{profile?.name}</p>
+            <p className="text-xs text-muted-foreground truncate">
+              {role === 'admin' ? 'Administrador' : 'Responsável'}
+            </p>
+          </div>
+        </div>
+        <Button variant="ghost" size="sm" className="w-full justify-start" onClick={handleSignOut}>
+          <LogOut className="w-4 h-4 mr-2" />
+          Sair
+        </Button>
+      </SidebarFooter>
     </Sidebar>
   );
 }
