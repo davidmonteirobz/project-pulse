@@ -1,28 +1,35 @@
 import { useParams, Link } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { projects, getStatusLabel } from "@/data/mockData";
+import { getDemandStatusLabel, getPriorityLabel } from "@/data/mockData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
-import { ArrowLeft, Calendar, User, Clock } from "lucide-react";
+import { ArrowLeft, Calendar, Users, Clock, FileText } from "lucide-react";
+import { useDemands } from "@/context/DemandsContext";
 
 const ProjetoDetalhe = () => {
   const { id } = useParams<{ id: string }>();
-  const project = projects.find((p) => p.id === id);
+  const { demands } = useDemands();
+  const demand = demands.find((d) => d.id === id);
 
   const getStatusVariant = (status: string) => {
     switch (status) {
-      case 'em_andamento': return 'default';
-      case 'a_iniciar': return 'secondary';
-      case 'finalizado': return 'outline';
+      case 'em_execucao': return 'default';
+      case 'em_analise': return 'secondary';
+      case 'aberta': return 'outline';
+      case 'em_pausa': return 'secondary';
+      case 'concluida': return 'default';
+      case 'cancelada': return 'destructive';
+      default: return 'default';
+    }
+  };
+
+  const getPriorityVariant = (priority: string) => {
+    switch (priority) {
+      case 'urgente': return 'destructive';
+      case 'alta': return 'default';
+      case 'media': return 'secondary';
+      case 'baixa': return 'outline';
       default: return 'default';
     }
   };
@@ -35,15 +42,15 @@ const ProjetoDetalhe = () => {
     });
   };
 
-  if (!project) {
+  if (!demand) {
     return (
       <AppLayout>
         <div className="text-center py-12">
-          <p className="text-muted-foreground mb-4">Projeto não encontrado.</p>
-          <Link to="/projetos">
+          <p className="text-muted-foreground mb-4">Demanda não encontrada.</p>
+          <Link to="/">
             <Button variant="outline">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Voltar aos Projetos
+              Voltar ao Dashboard
             </Button>
           </Link>
         </div>
@@ -51,107 +58,101 @@ const ProjetoDetalhe = () => {
     );
   }
 
-  const totalEstimated = project.stages.reduce((acc, s) => acc + s.estimatedHours, 0);
-  const totalRegistered = project.stages.reduce((acc, s) => acc + s.registeredHours, 0);
-
   return (
     <AppLayout>
       <div className="space-y-6">
         {/* Back Button */}
-        <Link to="/projetos">
+        <Link to="/">
           <Button variant="ghost" size="sm" className="mb-2">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Voltar
           </Button>
         </Link>
 
-        {/* Project Info */}
+        {/* Demand Info */}
         <Card className="shadow-sm">
           <CardHeader>
-            <div className="flex items-start justify-between">
+            <div className="flex items-start justify-between flex-wrap gap-4">
               <div>
-                <CardTitle className="text-2xl font-bold text-foreground mb-2">
-                  {project.name}
+                <CardTitle className="text-2xl font-bold text-foreground mb-3">
+                  {demand.title}
                 </CardTitle>
-                <Badge variant={getStatusVariant(project.status)} className="text-sm">
-                  {getStatusLabel(project.status)}
-                </Badge>
+                <div className="flex gap-2 flex-wrap">
+                  <Badge variant={getStatusVariant(demand.status)} className="text-sm">
+                    {getDemandStatusLabel(demand.status)}
+                  </Badge>
+                  <Badge variant={getPriorityVariant(demand.priority)} className="text-sm">
+                    {getPriorityLabel(demand.priority)}
+                  </Badge>
+                </div>
               </div>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center">
-                  <User className="w-5 h-5 text-foreground" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Responsável</p>
-                  <p className="font-medium text-foreground">{project.responsible}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
                   <Calendar className="w-5 h-5 text-foreground" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Data de Entrega</p>
-                  <p className="font-medium text-foreground">{formatDate(project.deliveryDate)}</p>
+                  <p className="text-sm text-muted-foreground">Período</p>
+                  <p className="font-medium text-foreground">
+                    {formatDate(demand.startDate)} - {formatDate(demand.dueDate)}
+                  </p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
                   <Clock className="w-5 h-5 text-foreground" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Horas</p>
-                  <p className="font-medium text-foreground">{totalRegistered}h / {totalEstimated}h</p>
+                  <p className="text-sm text-muted-foreground">Criado em</p>
+                  <p className="font-medium text-foreground">{formatDate(demand.createdAt)}</p>
                 </div>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Stages Table */}
+        {/* Description */}
+        {demand.description && (
+          <Card className="shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
+                <FileText className="w-5 h-5" />
+                Descrição
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-foreground whitespace-pre-wrap">{demand.description}</p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Responsibles */}
         <Card className="shadow-sm">
           <CardHeader>
-            <CardTitle className="text-lg font-semibold text-foreground">Etapas do Projeto</CardTitle>
+            <CardTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
+              <Users className="w-5 h-5" />
+              Responsáveis
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Etapa</TableHead>
-                  <TableHead className="text-center">Horas Estimadas</TableHead>
-                  <TableHead className="text-center">Horas Registradas</TableHead>
-                  <TableHead className="text-center">Progresso</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {project.stages.map((stage) => {
-                  const stageProgress = Math.round((stage.registeredHours / stage.estimatedHours) * 100);
-                  
-                  return (
-                    <TableRow key={stage.id}>
-                      <TableCell className="font-medium">{stage.name}</TableCell>
-                      <TableCell className="text-center">{stage.estimatedHours}h</TableCell>
-                      <TableCell className="text-center">{stage.registeredHours}h</TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-primary transition-all duration-300"
-                              style={{ width: `${Math.min(stageProgress, 100)}%` }}
-                            />
-                          </div>
-                          <span className="text-sm text-muted-foreground w-12">{stageProgress}%</span>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+            <div className="space-y-4">
+              {demand.responsibles.map((resp, idx) => (
+                <div key={idx} className="flex items-start gap-4 p-4 rounded-lg border border-border bg-muted/30">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <span className="text-primary font-semibold">
+                      {resp.userName.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="font-medium text-foreground">{resp.userName}</p>
+                    <p className="text-sm text-muted-foreground">{resp.responsibility}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       </div>
