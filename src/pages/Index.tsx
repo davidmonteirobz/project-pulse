@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { DashboardMetrics } from "@/components/dashboard/DashboardMetrics";
+import { DashboardMetrics, MetricFilter } from "@/components/dashboard/DashboardMetrics";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { Search, Calendar, Users, ChevronRight } from "lucide-react";
+import { Search, Calendar, Users, ChevronRight, X } from "lucide-react";
 import { useDemands } from "@/context/DemandsContext";
 import { DemandStatus, getDemandStatusLabel, getPriorityLabel } from "@/data/mockData";
 
@@ -19,12 +19,48 @@ const statusFilters: { value: DemandStatus | 'todos'; label: string }[] = [
   { value: 'concluida', label: 'Concluída' },
 ];
 
+const metricFilterLabels: Record<MetricFilter & string, string> = {
+  em_andamento: 'Demandas em Andamento',
+  atrasadas: 'Demandas Atrasadas',
+  urgentes: 'Demandas Urgentes',
+  entregas_semana: 'Entregas da Semana',
+};
+
 const Index = () => {
   const { demands } = useDemands();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<DemandStatus | 'todos'>('todos');
+  const [metricFilter, setMetricFilter] = useState<MetricFilter>(null);
 
-  const filteredDemands = demands.filter((demand) => {
+  const getMetricFilteredDemands = () => {
+    const today = new Date();
+    const weekFromNow = new Date(today);
+    weekFromNow.setDate(today.getDate() + 7);
+
+    switch (metricFilter) {
+      case 'em_andamento':
+        return demands.filter(d => d.status === 'em_execucao' || d.status === 'em_analise');
+      case 'atrasadas':
+        return demands.filter(d => 
+          d.status !== 'concluida' && d.status !== 'cancelada' && new Date(d.dueDate) < today
+        );
+      case 'urgentes':
+        return demands.filter(d => 
+          d.priority === 'urgente' && d.status !== 'concluida' && d.status !== 'cancelada'
+        );
+      case 'entregas_semana':
+        return demands.filter(d => {
+          const dueDate = new Date(d.dueDate);
+          return dueDate >= today && dueDate <= weekFromNow && d.status !== 'concluida' && d.status !== 'cancelada';
+        });
+      default:
+        return demands;
+    }
+  };
+
+  const baseFilteredDemands = getMetricFilteredDemands();
+
+  const filteredDemands = baseFilteredDemands.filter((demand) => {
     const responsibleNames = demand.responsibles.map(r => r.userName.toLowerCase()).join(' ');
     const matchesSearch = demand.title.toLowerCase().includes(search.toLowerCase()) ||
       responsibleNames.includes(search.toLowerCase());
@@ -65,14 +101,27 @@ const Index = () => {
   return (
     <AppLayout>
       <div className="space-y-6">
-        <DashboardMetrics />
+        <DashboardMetrics activeFilter={metricFilter} onFilterChange={setMetricFilter} />
         
         {/* Projects/Demands Section */}
         <Card className="shadow-sm">
           <CardHeader>
-            <CardTitle className="text-lg font-semibold text-foreground">
-              Projetos
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg font-semibold text-foreground">
+                {metricFilter ? metricFilterLabels[metricFilter] : 'Projetos'}
+              </CardTitle>
+              {metricFilter && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setMetricFilter(null)}
+                  className="text-muted-foreground"
+                >
+                  <X className="w-4 h-4 mr-1" />
+                  Limpar filtro
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Filters */}
