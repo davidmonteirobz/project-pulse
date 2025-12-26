@@ -1,4 +1,4 @@
-import { LayoutDashboard, FolderKanban, FileText, ClipboardList, User, LogOut } from "lucide-react";
+import { LayoutDashboard, FolderKanban, FileText, ClipboardList, User, LogOut, Users } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import {
 const adminMenuItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Demandas", url: "/demandas", icon: ClipboardList },
+  { title: "Equipe", url: "/equipe", icon: Users },
   { title: "Relatórios", url: "/relatorios", icon: FileText },
 ];
 
