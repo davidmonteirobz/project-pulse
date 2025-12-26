@@ -21,7 +21,7 @@ export interface Project {
 export interface DemandResponsible {
   userId: string;
   userName: string;
-  responsibility: string;
+  responsibilities: string[];
 }
 
 export interface Demand {
@@ -58,8 +58,8 @@ export const demands: Demand[] = [
     title: 'Correção de bug no login',
     description: 'Usuários reportaram problemas ao fazer login com email corporativo.',
     responsibles: [
-      { userId: '2', userName: 'Carlos Santos', responsibility: 'Desenvolvimento e correção' },
-      { userId: '4', userName: 'Pedro Costa', responsibility: 'Revisão de código' },
+      { userId: '2', userName: 'Carlos Santos', responsibilities: ['Desenvolvimento e correção', 'Testes unitários'] },
+      { userId: '4', userName: 'Pedro Costa', responsibilities: ['Revisão de código'] },
     ],
     priority: 'alta',
     status: 'em_execucao',
@@ -72,8 +72,8 @@ export const demands: Demand[] = [
     title: 'Novo layout da página inicial',
     description: 'Redesenhar a página inicial seguindo o novo guia de estilo.',
     responsibles: [
-      { userId: '1', userName: 'Ana Silva', responsibility: 'Design visual' },
-      { userId: '5', userName: 'Juliana Mendes', responsibility: 'UX e prototipagem' },
+      { userId: '1', userName: 'Ana Silva', responsibilities: ['Design visual', 'Criação de assets'] },
+      { userId: '5', userName: 'Juliana Mendes', responsibilities: ['UX e prototipagem'] },
     ],
     priority: 'media',
     status: 'em_analise',
@@ -86,7 +86,7 @@ export const demands: Demand[] = [
     title: 'Integração com API de pagamentos',
     description: 'Implementar integração com gateway de pagamentos.',
     responsibles: [
-      { userId: '4', userName: 'Pedro Costa', responsibility: 'Implementação backend' },
+      { userId: '4', userName: 'Pedro Costa', responsibilities: ['Implementação backend', 'Documentação da API'] },
     ],
     priority: 'urgente',
     status: 'em_execucao',
@@ -99,7 +99,7 @@ export const demands: Demand[] = [
     title: 'Documentação técnica do módulo de relatórios',
     description: 'Criar documentação completa do módulo de relatórios.',
     responsibles: [
-      { userId: '6', userName: 'Lucas Ferreira', responsibility: 'Documentação e exemplos' },
+      { userId: '6', userName: 'Lucas Ferreira', responsibilities: ['Documentação e exemplos'] },
     ],
     priority: 'baixa',
     status: 'aberta',
@@ -112,8 +112,8 @@ export const demands: Demand[] = [
     title: 'Otimização de performance do dashboard',
     description: 'Melhorar tempo de carregamento do dashboard principal.',
     responsibles: [
-      { userId: '2', userName: 'Carlos Santos', responsibility: 'Análise e otimização' },
-      { userId: '6', userName: 'Lucas Ferreira', responsibility: 'Métricas e monitoramento' },
+      { userId: '2', userName: 'Carlos Santos', responsibilities: ['Análise e otimização'] },
+      { userId: '6', userName: 'Lucas Ferreira', responsibilities: ['Métricas e monitoramento'] },
     ],
     priority: 'media',
     status: 'concluida',

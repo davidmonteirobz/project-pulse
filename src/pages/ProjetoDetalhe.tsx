@@ -146,9 +146,16 @@ const ProjetoDetalhe = () => {
                       {resp.userName.split(' ').map(n => n[0]).join('').slice(0, 2)}
                     </span>
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <p className="font-medium text-foreground">{resp.userName}</p>
-                    <p className="text-sm text-muted-foreground">{resp.responsibility}</p>
+                    <div className="mt-1 space-y-1">
+                      {resp.responsibilities.map((attr, attrIdx) => (
+                        <p key={attrIdx} className="text-sm text-muted-foreground flex items-center gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-primary/50" />
+                          {attr}
+                        </p>
+                      ))}
+                    </div>
                   </div>
                 </div>
               ))}

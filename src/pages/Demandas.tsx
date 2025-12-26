@@ -54,7 +54,7 @@ const statusFilters: { value: DemandStatus | 'todos'; label: string }[] = [
 
 interface ResponsibleEntry {
   userId: string;
-  responsibility: string;
+  responsibilities: string[];
 }
 
 const Demandas = () => {
@@ -73,7 +73,7 @@ const Demandas = () => {
   });
   
   const [responsibles, setResponsibles] = useState<ResponsibleEntry[]>([
-    { userId: '', responsibility: '' }
+    { userId: '', responsibilities: [''] }
   ]);
 
   const filteredDemands = demands.filter((demand) => {
@@ -115,7 +115,7 @@ const Demandas = () => {
   };
 
   const addResponsible = () => {
-    setResponsibles([...responsibles, { userId: '', responsibility: '' }]);
+    setResponsibles([...responsibles, { userId: '', responsibilities: [''] }]);
   };
 
   const removeResponsible = (index: number) => {
@@ -124,16 +124,36 @@ const Demandas = () => {
     }
   };
 
-  const updateResponsible = (index: number, field: keyof ResponsibleEntry, value: string) => {
+  const updateResponsibleUser = (index: number, userId: string) => {
     const updated = [...responsibles];
-    updated[index] = { ...updated[index], [field]: value };
+    updated[index] = { ...updated[index], userId };
+    setResponsibles(updated);
+  };
+
+  const addResponsibility = (respIndex: number) => {
+    const updated = [...responsibles];
+    updated[respIndex].responsibilities.push('');
+    setResponsibles(updated);
+  };
+
+  const removeResponsibility = (respIndex: number, attrIndex: number) => {
+    const updated = [...responsibles];
+    if (updated[respIndex].responsibilities.length > 1) {
+      updated[respIndex].responsibilities = updated[respIndex].responsibilities.filter((_, i) => i !== attrIndex);
+      setResponsibles(updated);
+    }
+  };
+
+  const updateResponsibility = (respIndex: number, attrIndex: number, value: string) => {
+    const updated = [...responsibles];
+    updated[respIndex].responsibilities[attrIndex] = value;
     setResponsibles(updated);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const validResponsibles = responsibles.filter(r => r.userId && r.responsibility);
+    const validResponsibles = responsibles.filter(r => r.userId && r.responsibilities.some(attr => attr.trim()));
     
     if (!formData.title || validResponsibles.length === 0 || !formData.startDate || !formData.dueDate) {
       toast.error("Preencha todos os campos obrigatórios.");
@@ -145,7 +165,7 @@ const Demandas = () => {
       return {
         userId: r.userId,
         userName: user?.name || '',
-        responsibility: r.responsibility,
+        responsibilities: r.responsibilities.filter(attr => attr.trim()),
       };
     });
 
@@ -169,7 +189,7 @@ const Demandas = () => {
       startDate: '',
       dueDate: '',
     });
-    setResponsibles([{ userId: '', responsibility: '' }]);
+    setResponsibles([{ userId: '', responsibilities: [''] }]);
     setIsDialogOpen(false);
     toast.success("Demanda criada com sucesso!");
   };
@@ -239,40 +259,74 @@ const Demandas = () => {
                   </div>
                   
                   <div className="space-y-3">
-                    {responsibles.map((resp, index) => (
-                      <div key={index} className="flex gap-2 items-start p-3 border rounded-lg bg-muted/30">
-                        <div className="flex-1 space-y-2">
-                          <Select 
-                            value={resp.userId} 
-                            onValueChange={(value) => updateResponsible(index, 'userId', value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione o responsável..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {users.map((user) => (
-                                <SelectItem key={user.id} value={user.id}>
-                                  {user.name} - {user.role}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Input
-                            placeholder="Responsabilidade atribuída..."
-                            value={resp.responsibility}
-                            onChange={(e) => updateResponsible(index, 'responsibility', e.target.value)}
-                          />
+                    {responsibles.map((resp, respIndex) => (
+                      <div key={respIndex} className="p-3 border rounded-lg bg-muted/30 space-y-3">
+                        <div className="flex gap-2 items-start">
+                          <div className="flex-1">
+                            <Select 
+                              value={resp.userId} 
+                              onValueChange={(value) => updateResponsibleUser(respIndex, value)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione o responsável..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {users.map((user) => (
+                                  <SelectItem key={user.id} value={user.id}>
+                                    {user.name} - {user.role}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          {responsibles.length > 1 && (
+                            <Button 
+                              type="button" 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={() => removeResponsible(respIndex)}
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          )}
                         </div>
-                        {responsibles.length > 1 && (
-                          <Button 
-                            type="button" 
-                            variant="ghost" 
-                            size="icon"
-                            onClick={() => removeResponsible(index)}
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        )}
+                        
+                        <div className="space-y-2 pl-2 border-l-2 border-primary/20">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-xs text-muted-foreground">Atribuições</Label>
+                            <Button 
+                              type="button" 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-6 text-xs"
+                              onClick={() => addResponsibility(respIndex)}
+                            >
+                              <Plus className="w-3 h-3 mr-1" />
+                              Atribuição
+                            </Button>
+                          </div>
+                          {resp.responsibilities.map((attr, attrIndex) => (
+                            <div key={attrIndex} className="flex gap-2">
+                              <Input
+                                placeholder="Responsabilidade atribuída..."
+                                value={attr}
+                                onChange={(e) => updateResponsibility(respIndex, attrIndex, e.target.value)}
+                                className="flex-1"
+                              />
+                              {resp.responsibilities.length > 1 && (
+                                <Button 
+                                  type="button" 
+                                  variant="ghost" 
+                                  size="icon"
+                                  className="h-10 w-10"
+                                  onClick={() => removeResponsibility(respIndex, attrIndex)}
+                                >
+                                  <X className="w-3 h-3" />
+                                </Button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -397,13 +451,15 @@ const Demandas = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="space-y-1">
+                        <div className="space-y-2">
                           {demand.responsibles.map((resp, idx) => (
-                            <div key={idx} className="flex items-start gap-2 text-sm">
-                              <Users className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                              <div>
+                            <div key={idx} className="text-sm">
+                              <div className="flex items-center gap-2">
+                                <Users className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                                 <span className="font-medium">{resp.userName}</span>
-                                <span className="text-muted-foreground"> - {resp.responsibility}</span>
+                              </div>
+                              <div className="pl-6 text-muted-foreground">
+                                {resp.responsibilities.join(', ')}
                               </div>
                             </div>
                           ))}
