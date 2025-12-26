@@ -3,12 +3,12 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { 
   demands as initialDemands, 
   users, 
-  projects,
   getDemandStatusLabel, 
   getPriorityLabel,
   Demand,
   DemandStatus,
-  DemandPriority
+  DemandPriority,
+  DemandResponsible
 } from "@/data/mockData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -40,7 +40,7 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { Search, Plus, Calendar, User, AlertCircle } from "lucide-react";
+import { Search, Plus, Calendar, User, AlertCircle, X, Users } from "lucide-react";
 import { toast } from "sonner";
 
 const statusFilters: { value: DemandStatus | 'todos'; label: string }[] = [
@@ -50,6 +50,11 @@ const statusFilters: { value: DemandStatus | 'todos'; label: string }[] = [
   { value: 'em_execucao', label: 'Em execução' },
   { value: 'concluida', label: 'Concluída' },
 ];
+
+interface ResponsibleEntry {
+  userId: string;
+  responsibility: string;
+}
 
 const Demandas = () => {
   const [demands, setDemands] = useState<Demand[]>(initialDemands);
@@ -61,15 +66,19 @@ const Demandas = () => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    responsible: '',
     priority: 'media' as DemandPriority,
+    startDate: '',
     dueDate: '',
-    projectId: '',
   });
+  
+  const [responsibles, setResponsibles] = useState<ResponsibleEntry[]>([
+    { userId: '', responsibility: '' }
+  ]);
 
   const filteredDemands = demands.filter((demand) => {
+    const responsibleNames = demand.responsibles.map(r => r.userName.toLowerCase()).join(' ');
     const matchesSearch = demand.title.toLowerCase().includes(search.toLowerCase()) ||
-      demand.responsible.toLowerCase().includes(search.toLowerCase());
+      responsibleNames.includes(search.toLowerCase());
     const matchesStatus = statusFilter === 'todos' || demand.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -103,35 +112,62 @@ const Demandas = () => {
     });
   };
 
+  const addResponsible = () => {
+    setResponsibles([...responsibles, { userId: '', responsibility: '' }]);
+  };
+
+  const removeResponsible = (index: number) => {
+    if (responsibles.length > 1) {
+      setResponsibles(responsibles.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateResponsible = (index: number, field: keyof ResponsibleEntry, value: string) => {
+    const updated = [...responsibles];
+    updated[index] = { ...updated[index], [field]: value };
+    setResponsibles(updated);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.title || !formData.responsible || !formData.dueDate) {
+    const validResponsibles = responsibles.filter(r => r.userId && r.responsibility);
+    
+    if (!formData.title || validResponsibles.length === 0 || !formData.startDate || !formData.dueDate) {
       toast.error("Preencha todos os campos obrigatórios.");
       return;
     }
+
+    const demandResponsibles: DemandResponsible[] = validResponsibles.map(r => {
+      const user = users.find(u => u.id === r.userId);
+      return {
+        userId: r.userId,
+        userName: user?.name || '',
+        responsibility: r.responsibility,
+      };
+    });
 
     const newDemand: Demand = {
       id: String(Date.now()),
       title: formData.title,
       description: formData.description,
-      responsible: formData.responsible,
+      responsibles: demandResponsibles,
       priority: formData.priority,
       status: 'aberta',
       createdAt: new Date().toISOString().split('T')[0],
+      startDate: formData.startDate,
       dueDate: formData.dueDate,
-      projectId: formData.projectId || undefined,
     };
 
     setDemands([newDemand, ...demands]);
     setFormData({
       title: '',
       description: '',
-      responsible: '',
       priority: 'media',
+      startDate: '',
       dueDate: '',
-      projectId: '',
     });
+    setResponsibles([{ userId: '', responsibility: '' }]);
     setIsDialogOpen(false);
     toast.success("Demanda criada com sucesso!");
   };
@@ -161,7 +197,7 @@ const Demandas = () => {
                 Nova Demanda
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
+            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Criar Nova Demanda</DialogTitle>
               </DialogHeader>
@@ -177,7 +213,7 @@ const Demandas = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="description">Descrição</Label>
+                  <Label htmlFor="description">Descrição *</Label>
                   <Textarea
                     id="description"
                     value={formData.description}
@@ -187,46 +223,85 @@ const Demandas = () => {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="responsible">Responsável *</Label>
-                    <Select 
-                      value={formData.responsible} 
-                      onValueChange={(value) => setFormData({ ...formData, responsible: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {users.map((user) => (
-                          <SelectItem key={user.id} value={user.name}>
-                            {user.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                {/* Responsibles Section */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label>Responsáveis *</Label>
+                    <Button type="button" variant="outline" size="sm" onClick={addResponsible}>
+                      <Plus className="w-4 h-4 mr-1" />
+                      Adicionar
+                    </Button>
                   </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="priority">Prioridade</Label>
-                    <Select 
-                      value={formData.priority} 
-                      onValueChange={(value) => setFormData({ ...formData, priority: value as DemandPriority })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="baixa">Baixa</SelectItem>
-                        <SelectItem value="media">Média</SelectItem>
-                        <SelectItem value="alta">Alta</SelectItem>
-                        <SelectItem value="urgente">Urgente</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  
+                  <div className="space-y-3">
+                    {responsibles.map((resp, index) => (
+                      <div key={index} className="flex gap-2 items-start p-3 border rounded-lg bg-muted/30">
+                        <div className="flex-1 space-y-2">
+                          <Select 
+                            value={resp.userId} 
+                            onValueChange={(value) => updateResponsible(index, 'userId', value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione o responsável..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {users.map((user) => (
+                                <SelectItem key={user.id} value={user.id}>
+                                  {user.name} - {user.role}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Input
+                            placeholder="Responsabilidade atribuída..."
+                            value={resp.responsibility}
+                            onChange={(e) => updateResponsible(index, 'responsibility', e.target.value)}
+                          />
+                        </div>
+                        {responsibles.length > 1 && (
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="icon"
+                            onClick={() => removeResponsible(index)}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </div>
 
+                <div className="space-y-2">
+                  <Label htmlFor="priority">Prioridade</Label>
+                  <Select 
+                    value={formData.priority} 
+                    onValueChange={(value) => setFormData({ ...formData, priority: value as DemandPriority })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="baixa">Baixa</SelectItem>
+                      <SelectItem value="media">Média</SelectItem>
+                      <SelectItem value="alta">Alta</SelectItem>
+                      <SelectItem value="urgente">Urgente</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="startDate">Data de Início *</Label>
+                    <Input
+                      id="startDate"
+                      type="date"
+                      value={formData.startDate}
+                      onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                    />
+                  </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="dueDate">Data de Entrega *</Label>
                     <Input
@@ -235,26 +310,6 @@ const Demandas = () => {
                       value={formData.dueDate}
                       onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
                     />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="project">Projeto (opcional)</Label>
-                    <Select 
-                      value={formData.projectId || "none"} 
-                      onValueChange={(value) => setFormData({ ...formData, projectId: value === "none" ? "" : value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Nenhum" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Nenhum</SelectItem>
-                        {projects.map((project) => (
-                          <SelectItem key={project.id} value={project.id}>
-                            {project.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
                   </div>
                 </div>
 
@@ -316,10 +371,10 @@ const Demandas = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Título</TableHead>
-                    <TableHead>Responsável</TableHead>
+                    <TableHead>Responsáveis</TableHead>
                     <TableHead className="text-center">Prioridade</TableHead>
                     <TableHead className="text-center">Status</TableHead>
-                    <TableHead className="text-center">Prazo</TableHead>
+                    <TableHead className="text-center">Período</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -337,9 +392,16 @@ const Demandas = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          <User className="w-4 h-4 text-muted-foreground" />
-                          <span>{demand.responsible}</span>
+                        <div className="space-y-1">
+                          {demand.responsibles.map((resp, idx) => (
+                            <div key={idx} className="flex items-start gap-2 text-sm">
+                              <Users className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                              <div>
+                                <span className="font-medium">{resp.userName}</span>
+                                <span className="text-muted-foreground"> - {resp.responsibility}</span>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </TableCell>
                       <TableCell className="text-center">
@@ -353,8 +415,12 @@ const Demandas = () => {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-center">
-                        <div className="flex items-center justify-center gap-1 text-sm">
-                          <Calendar className="w-4 h-4 text-muted-foreground" />
+                        <div className="flex flex-col items-center gap-1 text-sm">
+                          <div className="flex items-center gap-1">
+                            <Calendar className="w-4 h-4 text-muted-foreground" />
+                            <span>{formatDate(demand.startDate)}</span>
+                          </div>
+                          <span className="text-muted-foreground">até</span>
                           <span>{formatDate(demand.dueDate)}</span>
                         </div>
                       </TableCell>

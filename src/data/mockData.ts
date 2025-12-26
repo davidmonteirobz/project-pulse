@@ -18,16 +18,22 @@ export interface Project {
   stages: Stage[];
 }
 
+export interface DemandResponsible {
+  userId: string;
+  userName: string;
+  responsibility: string;
+}
+
 export interface Demand {
   id: string;
   title: string;
   description: string;
-  responsible: string;
+  responsibles: DemandResponsible[];
   priority: DemandPriority;
   status: DemandStatus;
   createdAt: string;
+  startDate: string;
   dueDate: string;
-  projectId?: string;
 }
 
 export interface User {
@@ -51,53 +57,68 @@ export const demands: Demand[] = [
     id: '1',
     title: 'Correção de bug no login',
     description: 'Usuários reportaram problemas ao fazer login com email corporativo.',
-    responsible: 'Carlos Santos',
+    responsibles: [
+      { userId: '2', userName: 'Carlos Santos', responsibility: 'Desenvolvimento e correção' },
+      { userId: '4', userName: 'Pedro Costa', responsibility: 'Revisão de código' },
+    ],
     priority: 'alta',
     status: 'em_execucao',
     createdAt: '2024-12-20',
+    startDate: '2024-12-21',
     dueDate: '2024-12-27',
-    projectId: '2',
   },
   {
     id: '2',
     title: 'Novo layout da página inicial',
     description: 'Redesenhar a página inicial seguindo o novo guia de estilo.',
-    responsible: 'Ana Silva',
+    responsibles: [
+      { userId: '1', userName: 'Ana Silva', responsibility: 'Design visual' },
+      { userId: '5', userName: 'Juliana Mendes', responsibility: 'UX e prototipagem' },
+    ],
     priority: 'media',
     status: 'em_analise',
     createdAt: '2024-12-22',
+    startDate: '2024-12-23',
     dueDate: '2025-01-10',
-    projectId: '1',
   },
   {
     id: '3',
     title: 'Integração com API de pagamentos',
     description: 'Implementar integração com gateway de pagamentos.',
-    responsible: 'Pedro Costa',
+    responsibles: [
+      { userId: '4', userName: 'Pedro Costa', responsibility: 'Implementação backend' },
+    ],
     priority: 'urgente',
     status: 'em_execucao',
     createdAt: '2024-12-18',
+    startDate: '2024-12-19',
     dueDate: '2024-12-26',
-    projectId: '4',
   },
   {
     id: '4',
     title: 'Documentação técnica do módulo de relatórios',
     description: 'Criar documentação completa do módulo de relatórios.',
-    responsible: 'Lucas Ferreira',
+    responsibles: [
+      { userId: '6', userName: 'Lucas Ferreira', responsibility: 'Documentação e exemplos' },
+    ],
     priority: 'baixa',
     status: 'aberta',
     createdAt: '2024-12-24',
+    startDate: '2024-12-26',
     dueDate: '2025-01-15',
   },
   {
     id: '5',
     title: 'Otimização de performance do dashboard',
     description: 'Melhorar tempo de carregamento do dashboard principal.',
-    responsible: 'Carlos Santos',
+    responsibles: [
+      { userId: '2', userName: 'Carlos Santos', responsibility: 'Análise e otimização' },
+      { userId: '6', userName: 'Lucas Ferreira', responsibility: 'Métricas e monitoramento' },
+    ],
     priority: 'media',
     status: 'concluida',
     createdAt: '2024-12-15',
+    startDate: '2024-12-16',
     dueDate: '2024-12-23',
   },
 ];
