@@ -46,6 +46,7 @@ interface TeamMember {
   created_at: string;
   updated_at: string;
   linked_user?: Profile | null;
+  user_role?: 'admin' | 'responsavel';
 }
 
 const Equipe = () => {
@@ -61,6 +62,7 @@ const Equipe = () => {
     name: '',
     role_function: '',
     user_id: '' as string | null,
+    access_level: 'responsavel' as 'admin' | 'responsavel',
   });
 
   useEffect(() => {
@@ -91,18 +93,33 @@ const Equipe = () => {
       
       if (error) throw error;
       
-      // Fetch linked user info for each member
+      // Fetch linked user info and role for each member
       const membersWithUsers = await Promise.all(
         (data || []).map(async (member) => {
+          let linked_user = null;
+          let user_role: 'admin' | 'responsavel' = 'responsavel';
+          
           if (member.user_id) {
             const { data: profile } = await supabase
               .from('profiles')
               .select('id, name, email')
               .eq('id', member.user_id)
               .maybeSingle();
-            return { ...member, linked_user: profile };
+            linked_user = profile;
+            
+            // Fetch user role
+            const { data: roleData } = await supabase
+              .from('user_roles')
+              .select('role')
+              .eq('user_id', member.user_id)
+              .maybeSingle();
+            
+            if (roleData) {
+              user_role = roleData.role as 'admin' | 'responsavel';
+            }
           }
-          return { ...member, linked_user: null };
+          
+          return { ...member, linked_user, user_role };
         })
       );
       
@@ -139,7 +156,20 @@ const Equipe = () => {
 
       if (error) throw error;
 
-      setFormData({ name: '', role_function: '', user_id: null });
+      // Update user role if a user is linked
+      if (formData.user_id) {
+        // Delete existing role and insert new one
+        await supabase
+          .from('user_roles')
+          .delete()
+          .eq('user_id', formData.user_id);
+        
+        await supabase
+          .from('user_roles')
+          .insert([{ user_id: formData.user_id, role: formData.access_level }]);
+      }
+
+      setFormData({ name: '', role_function: '', user_id: null, access_level: 'responsavel' });
       setIsDialogOpen(false);
       toast.success("Membro adicionado com sucesso!");
       fetchMembers();
@@ -169,7 +199,19 @@ const Equipe = () => {
 
       if (error) throw error;
 
-      setFormData({ name: '', role_function: '', user_id: null });
+      // Update user role if a user is linked
+      if (formData.user_id) {
+        await supabase
+          .from('user_roles')
+          .delete()
+          .eq('user_id', formData.user_id);
+        
+        await supabase
+          .from('user_roles')
+          .insert([{ user_id: formData.user_id, role: formData.access_level }]);
+      }
+
+      setFormData({ name: '', role_function: '', user_id: null, access_level: 'responsavel' });
       setEditingMember(null);
       setIsEditDialogOpen(false);
       toast.success("Membro atualizado com sucesso!");
@@ -202,7 +244,8 @@ const Equipe = () => {
     setFormData({ 
       name: member.name, 
       role_function: member.role_function,
-      user_id: member.user_id 
+      user_id: member.user_id,
+      access_level: member.user_role || 'responsavel'
     });
     setIsEditDialogOpen(true);
   };
@@ -270,6 +313,24 @@ const Equipe = () => {
                   </Select>
                 </div>
 
+                {formData.user_id && formData.user_id !== "none" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="access_level">Nível de Acesso *</Label>
+                    <Select
+                      value={formData.access_level}
+                      onValueChange={(value: 'admin' | 'responsavel') => setFormData({ ...formData, access_level: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o nível de acesso" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="responsavel">Responsável (Acesso às demandas)</SelectItem>
+                        <SelectItem value="admin">Administrador (Acesso total)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
                 <DialogFooter className="mt-6">
                   <DialogClose asChild>
                     <Button type="button" variant="outline">Cancelar</Button>
@@ -321,6 +382,7 @@ const Equipe = () => {
                     <TableHead>Nome</TableHead>
                     <TableHead>Função</TableHead>
                     <TableHead>Usuário Vinculado</TableHead>
+                    <TableHead>Nível de Acesso</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -335,6 +397,19 @@ const Equipe = () => {
                             <Link2 className="w-4 h-4 text-primary" />
                             <span>{member.linked_user.name}</span>
                           </div>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {member.linked_user ? (
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                            member.user_role === 'admin' 
+                              ? 'bg-primary/10 text-primary' 
+                              : 'bg-muted text-muted-foreground'
+                          }`}>
+                            {member.user_role === 'admin' ? 'Administrador' : 'Responsável'}
+                          </span>
                         ) : (
                           <span className="text-muted-foreground">-</span>
                         )}
@@ -411,6 +486,24 @@ const Equipe = () => {
                   </SelectContent>
                 </Select>
               </div>
+
+              {formData.user_id && formData.user_id !== "none" && (
+                <div className="space-y-2">
+                  <Label htmlFor="edit-access_level">Nível de Acesso *</Label>
+                  <Select
+                    value={formData.access_level}
+                    onValueChange={(value: 'admin' | 'responsavel') => setFormData({ ...formData, access_level: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o nível de acesso" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="responsavel">Responsável (Acesso às demandas)</SelectItem>
+                      <SelectItem value="admin">Administrador (Acesso total)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               <DialogFooter className="mt-6">
                 <DialogClose asChild>
