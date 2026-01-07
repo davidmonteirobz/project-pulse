@@ -44,6 +44,7 @@ interface DemandsContextType {
   demands: Demand[];
   loading: boolean;
   addDemand: (demand: CreateDemandInput) => Promise<void>;
+  updateDemand: (demandId: string, demand: CreateDemandInput) => Promise<void>;
   updateDemandStatus: (demandId: string, status: DemandStatus) => Promise<void>;
   deleteDemand: (demandId: string) => Promise<void>;
   toggleResponsibility: (responsibilityId: string) => Promise<void>;
@@ -188,6 +189,86 @@ export function DemandsProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const updateDemand = async (demandId: string, input: CreateDemandInput) => {
+    try {
+      // Update demand main fields
+      const { error: demandError } = await supabase
+        .from('demands')
+        .update({
+          title: input.title,
+          description: input.description,
+          priority: input.priority,
+          start_date: input.startDate,
+          due_date: input.dueDate,
+        })
+        .eq('id', demandId);
+
+      if (demandError) throw demandError;
+
+      // Fetch existing responsibles for this demand
+      const { data: existingResponsibles, error: existingRespError } = await supabase
+        .from('demand_responsibles')
+        .select('id')
+        .eq('demand_id', demandId);
+
+      if (existingRespError) throw existingRespError;
+
+      const existingResponsibleIds = (existingResponsibles || []).map(r => r.id);
+
+      // Delete responsibilities first (safe even if FK cascade is missing)
+      if (existingResponsibleIds.length > 0) {
+        const { error: delResponsibilitiesError } = await supabase
+          .from('demand_responsibilities')
+          .delete()
+          .in('demand_responsible_id', existingResponsibleIds);
+
+        if (delResponsibilitiesError) throw delResponsibilitiesError;
+      }
+
+      // Delete responsibles
+      const { error: delResponsiblesError } = await supabase
+        .from('demand_responsibles')
+        .delete()
+        .eq('demand_id', demandId);
+
+      if (delResponsiblesError) throw delResponsiblesError;
+
+      // Recreate responsibles + responsibilities
+      for (const resp of input.responsibles) {
+        const { data: responsibleData, error: responsibleError } = await supabase
+          .from('demand_responsibles')
+          .insert({
+            demand_id: demandId,
+            team_member_id: resp.teamMemberId,
+          })
+          .select()
+          .single();
+
+        if (responsibleError) throw responsibleError;
+
+        const responsibilitiesInsert = resp.responsibilities
+          .filter(text => text.trim())
+          .map(text => ({
+            demand_responsible_id: responsibleData.id,
+            text: text.trim(),
+          }));
+
+        if (responsibilitiesInsert.length > 0) {
+          const { error: respError } = await supabase
+            .from('demand_responsibilities')
+            .insert(responsibilitiesInsert);
+
+          if (respError) throw respError;
+        }
+      }
+
+      await fetchDemands();
+    } catch (error) {
+      console.error('Error updating demand:', error);
+      throw error;
+    }
+  };
+
   const updateDemandStatus = async (demandId: string, status: DemandStatus) => {
     try {
       const { error } = await supabase
@@ -268,6 +349,7 @@ export function DemandsProvider({ children }: { children: ReactNode }) {
       demands,
       loading,
       addDemand,
+      updateDemand,
       updateDemandStatus,
       deleteDemand,
       toggleResponsibility,

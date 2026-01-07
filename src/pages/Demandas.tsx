@@ -37,9 +37,9 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { Search, Plus, Calendar, AlertCircle, X, Users, Trash2 } from "lucide-react";
+import { Search, Plus, Calendar, AlertCircle, X, Users, Trash2, Pencil } from "lucide-react";
 import { toast } from "sonner";
-import { useDemands } from "@/context/DemandsContext";
+import { useDemands, type Demand } from "@/context/DemandsContext";
 
 const statusFilters: { value: DemandStatus | 'todos'; label: string }[] = [
   { value: 'todos', label: 'Todos' },
@@ -62,10 +62,11 @@ interface TeamMember {
 }
 
 const Demandas = () => {
-  const { demands, loading, addDemand, updateDemandStatus, deleteDemand } = useDemands();
+  const { demands, loading, addDemand, updateDemand, updateDemandStatus, deleteDemand } = useDemands();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<DemandStatus | 'todos'>('todos');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingDemand, setEditingDemand] = useState<Demand | null>(null);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [submitting, setSubmitting] = useState(false);
   
@@ -171,6 +172,42 @@ const Demandas = () => {
     setResponsibles(updated);
   };
 
+  const resetForm = () => {
+    setFormData({
+      title: '',
+      description: '',
+      priority: 'media',
+      startDate: '',
+      dueDate: '',
+    });
+    setResponsibles([{ teamMemberId: '', responsibilities: [''] }]);
+    setEditingDemand(null);
+  };
+
+  const openCreateDialog = () => {
+    resetForm();
+    setIsDialogOpen(true);
+  };
+
+  const openEditDialog = (demand: Demand) => {
+    setEditingDemand(demand);
+    setFormData({
+      title: demand.title,
+      description: demand.description || '',
+      priority: demand.priority,
+      startDate: demand.startDate || '',
+      dueDate: demand.dueDate || '',
+    });
+
+    const mappedResponsibles: ResponsibleEntry[] = (demand.responsibles || []).map((r) => ({
+      teamMemberId: r.teamMemberId,
+      responsibilities: (r.responsibilities || []).map((x) => x.text),
+    }));
+
+    setResponsibles(mappedResponsibles.length > 0 ? mappedResponsibles : [{ teamMemberId: '', responsibilities: [''] }]);
+    setIsDialogOpen(true);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -183,7 +220,7 @@ const Demandas = () => {
 
     setSubmitting(true);
     try {
-      await addDemand({
+      const payload = {
         title: formData.title,
         description: formData.description,
         priority: formData.priority,
@@ -193,20 +230,20 @@ const Demandas = () => {
           teamMemberId: r.teamMemberId,
           responsibilities: r.responsibilities.filter(attr => attr.trim())
         }))
-      });
+      };
 
-      setFormData({
-        title: '',
-        description: '',
-        priority: 'media',
-        startDate: '',
-        dueDate: '',
-      });
-      setResponsibles([{ teamMemberId: '', responsibilities: [''] }]);
+      if (editingDemand) {
+        await updateDemand(editingDemand.id, payload);
+        toast.success("Demanda atualizada com sucesso!");
+      } else {
+        await addDemand(payload);
+        toast.success("Demanda criada com sucesso!");
+      }
+
       setIsDialogOpen(false);
-      toast.success("Demanda criada com sucesso!");
+      resetForm();
     } catch (error) {
-      toast.error("Erro ao criar demanda.");
+      toast.error(editingDemand ? "Erro ao atualizar demanda." : "Erro ao criar demanda.");
     } finally {
       setSubmitting(false);
     }
@@ -241,16 +278,19 @@ const Demandas = () => {
               Registre e acompanhe todas as demandas da equipe
             </p>
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <Dialog open={isDialogOpen} onOpenChange={(open) => {
+            setIsDialogOpen(open);
+            if (!open) resetForm();
+          }}>
             <DialogTrigger asChild>
-              <Button>
+              <Button onClick={openCreateDialog}>
                 <Plus className="w-4 h-4 mr-2" />
                 Nova Demanda
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Criar Nova Demanda</DialogTitle>
+                <DialogTitle>{editingDemand ? "Editar Demanda" : "Criar Nova Demanda"}</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4 mt-4">
                 <div className="space-y-2">
@@ -403,7 +443,7 @@ const Demandas = () => {
                     <Button type="button" variant="outline">Cancelar</Button>
                   </DialogClose>
                   <Button type="submit" disabled={submitting}>
-                    {submitting ? 'Criando...' : 'Criar Demanda'}
+                    {submitting ? (editingDemand ? 'Salvando...' : 'Criando...') : (editingDemand ? 'Salvar alterações' : 'Criar Demanda')}
                   </Button>
                 </DialogFooter>
               </form>
@@ -519,6 +559,13 @@ const Demandas = () => {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openEditDialog(demand)}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
                           <Select 
                             value={demand.status}
                             onValueChange={(value) => handleStatusChange(demand.id, value as DemandStatus)}
