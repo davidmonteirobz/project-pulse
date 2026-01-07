@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useDemands } from "@/context/DemandsContext";
@@ -9,9 +9,96 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Timer, ChevronRight, ClipboardList, AlertTriangle } from "lucide-react";
+import { Calendar, Timer, ChevronRight, ClipboardList, AlertTriangle, Play, Pause } from "lucide-react";
 import { getDemandStatusLabel, getPriorityLabel, DemandStatus } from "@/data/mockData";
 import { supabase } from "@/integrations/supabase/client";
+
+// Timer component for each task
+const TaskTimer = ({ 
+  taskId, 
+  initialHours, 
+  onUpdateHours 
+}: { 
+  taskId: string; 
+  initialHours: number; 
+  onUpdateHours: (id: string, hours: number) => void 
+}) => {
+  const [isRunning, setIsRunning] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const baseHoursRef = useRef(initialHours);
+
+  // Update base hours when initialHours changes (from parent)
+  useEffect(() => {
+    if (!isRunning) {
+      baseHoursRef.current = initialHours;
+    }
+  }, [initialHours, isRunning]);
+
+  const startTimer = useCallback(() => {
+    if (isRunning) return;
+    setIsRunning(true);
+    intervalRef.current = setInterval(() => {
+      setElapsedSeconds(prev => prev + 1);
+    }, 1000);
+  }, [isRunning]);
+
+  const stopTimer = useCallback(() => {
+    if (!isRunning) return;
+    setIsRunning(false);
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    // Save accumulated hours
+    const additionalHours = elapsedSeconds / 3600;
+    const newTotal = baseHoursRef.current + additionalHours;
+    onUpdateHours(taskId, parseFloat(newTotal.toFixed(2)));
+    baseHoursRef.current = newTotal;
+    setElapsedSeconds(0);
+  }, [isRunning, elapsedSeconds, taskId, onUpdateHours]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []);
+
+  const formatTime = (seconds: number) => {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const displayHours = isRunning 
+    ? (baseHoursRef.current + elapsedSeconds / 3600).toFixed(2)
+    : initialHours.toFixed(2);
+
+  return (
+    <div className="flex items-center gap-2">
+      <Button
+        variant={isRunning ? "destructive" : "outline"}
+        size="icon"
+        className="h-8 w-8"
+        onClick={isRunning ? stopTimer : startTimer}
+      >
+        {isRunning ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+      </Button>
+      <div className="flex flex-col items-end">
+        <span className="text-sm font-medium">{displayHours}h</span>
+        {isRunning && (
+          <span className="text-xs text-muted-foreground font-mono">
+            {formatTime(elapsedSeconds)}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const MinhasDemandas = () => {
   const { profile, user } = useAuth();
@@ -147,17 +234,11 @@ const MinhasDemandas = () => {
                 >
                   {item.text}
                 </label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    min="0"
-                    step="0.5"
-                    value={item.hoursWorked || 0}
-                    onChange={(e) => updateTaskHours(item.id, parseFloat(e.target.value) || 0)}
-                    className="w-20 text-center"
-                  />
-                  <span className="text-sm text-muted-foreground">h</span>
-                </div>
+                <TaskTimer
+                  taskId={item.id}
+                  initialHours={item.hoursWorked || 0}
+                  onUpdateHours={updateTaskHours}
+                />
               </div>
             ))}
           </div>
