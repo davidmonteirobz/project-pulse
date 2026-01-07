@@ -67,16 +67,17 @@ const TaskTimer = ({
     };
   }, []);
 
-  const formatTime = (seconds: number) => {
-    const hrs = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
+  const formatHoursToTime = (hours: number) => {
+    const totalSeconds = Math.floor(hours * 3600);
+    const hrs = Math.floor(totalSeconds / 3600);
+    const mins = Math.floor((totalSeconds % 3600) / 60);
+    const secs = totalSeconds % 60;
     return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const displayHours = isRunning 
-    ? (baseHoursRef.current + elapsedSeconds / 3600).toFixed(2)
-    : initialHours.toFixed(2);
+  const currentTotalHours = isRunning 
+    ? baseHoursRef.current + elapsedSeconds / 3600
+    : initialHours;
 
   return (
     <div className="flex items-center gap-2">
@@ -88,13 +89,10 @@ const TaskTimer = ({
       >
         {isRunning ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
       </Button>
-      <div className="flex flex-col items-end">
-        <span className="text-sm font-medium">{displayHours}h</span>
-        {isRunning && (
-          <span className="text-xs text-muted-foreground font-mono">
-            {formatTime(elapsedSeconds)}
-          </span>
-        )}
+      <div className="flex items-center gap-1">
+        <span className={`text-sm font-mono font-medium ${isRunning ? 'text-primary' : ''}`}>
+          {formatHoursToTime(currentTotalHours)}
+        </span>
       </div>
     </div>
   );
