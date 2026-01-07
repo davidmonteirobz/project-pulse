@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar, Timer, ChevronRight, ClipboardList, AlertTriangle, Play, Pause } from "lucide-react";
 import { getDemandStatusLabel, getPriorityLabel, DemandStatus } from "@/data/mockData";
 import { supabase } from "@/integrations/supabase/client";
+import { formatHoursToTime } from "@/lib/formatTime";
 
 // Timer component for each task
 const TaskTimer = ({ 
@@ -208,7 +209,7 @@ const MinhasDemandas = () => {
                 </span>
                 <span className="flex items-center gap-1">
                   <Timer className="w-4 h-4" />
-                  {totalHours}h registradas
+                  <span className="font-mono">{formatHoursToTime(totalHours)}</span> registradas
                 </span>
               </div>
             </div>
