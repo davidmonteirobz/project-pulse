@@ -7,6 +7,7 @@ export interface ResponsibilityItem {
   text: string;
   completed: boolean;
   hoursWorked: number;
+  dueDate: string;
 }
 
 export interface DemandResponsible {
@@ -36,7 +37,7 @@ interface CreateDemandInput {
   dueDate: string;
   responsibles: {
     teamMemberId: string;
-    responsibilities: string[];
+    responsibilities: { text: string; dueDate: string }[];
   }[];
 }
 
@@ -98,7 +99,8 @@ export function DemandsProvider({ children }: { children: ReactNode }) {
                 id: resp.id,
                 text: resp.text,
                 completed: resp.completed,
-                hoursWorked: Number(resp.hours_worked)
+                hoursWorked: Number(resp.hours_worked),
+                dueDate: resp.due_date || ''
               }));
 
             return {
@@ -167,10 +169,11 @@ export function DemandsProvider({ children }: { children: ReactNode }) {
 
         // Create responsibilities
         const responsibilitiesInsert = resp.responsibilities
-          .filter(text => text.trim())
-          .map(text => ({
+          .filter(r => r.text.trim())
+          .map(r => ({
             demand_responsible_id: responsibleData.id,
-            text: text.trim()
+            text: r.text.trim(),
+            due_date: r.dueDate || null
           }));
 
         if (responsibilitiesInsert.length > 0) {
@@ -247,10 +250,11 @@ export function DemandsProvider({ children }: { children: ReactNode }) {
         if (responsibleError) throw responsibleError;
 
         const responsibilitiesInsert = resp.responsibilities
-          .filter(text => text.trim())
-          .map(text => ({
+          .filter(r => r.text.trim())
+          .map(r => ({
             demand_responsible_id: responsibleData.id,
-            text: text.trim(),
+            text: r.text.trim(),
+            due_date: r.dueDate || null
           }));
 
         if (responsibilitiesInsert.length > 0) {

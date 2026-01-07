@@ -50,9 +50,14 @@ const statusFilters: { value: DemandStatus | 'todos'; label: string }[] = [
   { value: 'concluida', label: 'Concluída' },
 ];
 
+interface ResponsibilityEntry {
+  text: string;
+  dueDate: string;
+}
+
 interface ResponsibleEntry {
   teamMemberId: string;
-  responsibilities: string[];
+  responsibilities: ResponsibilityEntry[];
 }
 
 interface TeamMember {
@@ -80,7 +85,7 @@ const Demandas = () => {
   });
   
   const [responsibles, setResponsibles] = useState<ResponsibleEntry[]>([
-    { teamMemberId: '', responsibilities: [''] }
+    { teamMemberId: '', responsibilities: [{ text: '', dueDate: '' }] }
   ]);
 
   useEffect(() => {
@@ -137,7 +142,7 @@ const Demandas = () => {
   };
 
   const addResponsible = () => {
-    setResponsibles([...responsibles, { teamMemberId: '', responsibilities: [''] }]);
+    setResponsibles([...responsibles, { teamMemberId: '', responsibilities: [{ text: '', dueDate: '' }] }]);
   };
 
   const removeResponsible = (index: number) => {
@@ -154,7 +159,7 @@ const Demandas = () => {
 
   const addResponsibility = (respIndex: number) => {
     const updated = [...responsibles];
-    updated[respIndex].responsibilities.push('');
+    updated[respIndex].responsibilities.push({ text: '', dueDate: '' });
     setResponsibles(updated);
   };
 
@@ -166,9 +171,12 @@ const Demandas = () => {
     }
   };
 
-  const updateResponsibility = (respIndex: number, attrIndex: number, value: string) => {
+  const updateResponsibility = (respIndex: number, attrIndex: number, field: 'text' | 'dueDate', value: string) => {
     const updated = [...responsibles];
-    updated[respIndex].responsibilities[attrIndex] = value;
+    updated[respIndex].responsibilities[attrIndex] = {
+      ...updated[respIndex].responsibilities[attrIndex],
+      [field]: value
+    };
     setResponsibles(updated);
   };
 
@@ -180,7 +188,7 @@ const Demandas = () => {
       startDate: '',
       dueDate: '',
     });
-    setResponsibles([{ teamMemberId: '', responsibilities: [''] }]);
+    setResponsibles([{ teamMemberId: '', responsibilities: [{ text: '', dueDate: '' }] }]);
     setEditingDemand(null);
   };
 
@@ -201,17 +209,20 @@ const Demandas = () => {
 
     const mappedResponsibles: ResponsibleEntry[] = (demand.responsibles || []).map((r) => ({
       teamMemberId: r.teamMemberId,
-      responsibilities: (r.responsibilities || []).map((x) => x.text),
+      responsibilities: (r.responsibilities || []).map((x) => ({ 
+        text: x.text, 
+        dueDate: x.dueDate || '' 
+      })),
     }));
 
-    setResponsibles(mappedResponsibles.length > 0 ? mappedResponsibles : [{ teamMemberId: '', responsibilities: [''] }]);
+    setResponsibles(mappedResponsibles.length > 0 ? mappedResponsibles : [{ teamMemberId: '', responsibilities: [{ text: '', dueDate: '' }] }]);
     setIsDialogOpen(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const validResponsibles = responsibles.filter(r => r.teamMemberId && r.responsibilities.some(attr => attr.trim()));
+    const validResponsibles = responsibles.filter(r => r.teamMemberId && r.responsibilities.some(attr => attr.text.trim()));
     
     if (!formData.title || validResponsibles.length === 0 || !formData.startDate || !formData.dueDate) {
       toast.error("Preencha todos os campos obrigatórios.");
@@ -228,7 +239,9 @@ const Demandas = () => {
         dueDate: formData.dueDate,
         responsibles: validResponsibles.map(r => ({
           teamMemberId: r.teamMemberId,
-          responsibilities: r.responsibilities.filter(attr => attr.trim())
+          responsibilities: r.responsibilities
+            .filter(attr => attr.text.trim())
+            .map(attr => ({ text: attr.text, dueDate: attr.dueDate }))
         }))
       };
 
@@ -372,12 +385,19 @@ const Demandas = () => {
                             </Button>
                           </div>
                           {resp.responsibilities.map((attr, attrIndex) => (
-                            <div key={attrIndex} className="flex gap-2">
+                            <div key={attrIndex} className="flex gap-2 items-center">
                               <Input
-                                placeholder="Responsabilidade atribuída..."
-                                value={attr}
-                                onChange={(e) => updateResponsibility(respIndex, attrIndex, e.target.value)}
+                                placeholder="Descrição da responsabilidade..."
+                                value={attr.text}
+                                onChange={(e) => updateResponsibility(respIndex, attrIndex, 'text', e.target.value)}
                                 className="flex-1"
+                              />
+                              <Input
+                                type="date"
+                                value={attr.dueDate}
+                                onChange={(e) => updateResponsibility(respIndex, attrIndex, 'dueDate', e.target.value)}
+                                className="w-40"
+                                title="Data de entrega"
                               />
                               {resp.responsibilities.length > 1 && (
                                 <Button 

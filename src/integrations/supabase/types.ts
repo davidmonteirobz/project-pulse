@@ -19,6 +19,7 @@ export type Database = {
           completed: boolean
           created_at: string
           demand_responsible_id: string
+          due_date: string | null
           hours_worked: number
           id: string
           text: string
@@ -28,6 +29,7 @@ export type Database = {
           completed?: boolean
           created_at?: string
           demand_responsible_id: string
+          due_date?: string | null
           hours_worked?: number
           id?: string
           text: string
@@ -37,6 +39,7 @@ export type Database = {
           completed?: boolean
           created_at?: string
           demand_responsible_id?: string
+          due_date?: string | null
           hours_worked?: number
           id?: string
           text?: string
