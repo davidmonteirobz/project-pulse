@@ -132,21 +132,29 @@ const MinhasDemandas = () => {
   const weekFromNow = new Date(today);
   weekFromNow.setDate(today.getDate() + 7);
 
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+  // Hoje: demandas que estão ativas hoje (entre data de início e entrega)
   const dailyDemands = myDemands.filter(d => {
+    const startDate = new Date(d.startDate);
     const dueDate = new Date(d.dueDate);
-    return dueDate.toDateString() === today.toDateString();
+    const startDateOnly = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+    const dueDateOnly = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+    return startDateOnly <= todayStart && dueDateOnly >= todayStart;
   });
 
+  // Semana: demandas com entrega nos próximos 7 dias
   const weeklyDemands = myDemands.filter(d => {
     const dueDate = new Date(d.dueDate);
-    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    return dueDate > todayStart && dueDate <= weekFromNow;
+    const dueDateOnly = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+    return dueDateOnly >= todayStart && dueDateOnly <= weekFromNow;
   });
 
+  // Atrasadas: demandas com data de entrega anterior a hoje
   const overdueDemands = myDemands.filter(d => {
     const dueDate = new Date(d.dueDate);
-    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    return dueDate < todayStart;
+    const dueDateOnly = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+    return dueDateOnly < todayStart;
   });
 
   const getStatusVariant = (status: DemandStatus) => {
