@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft, Calendar, Clock, FileText, Users, Timer } from "lucide-react";
 import { useDemands } from "@/context/DemandsContext";
+import { formatHoursToTime } from "@/lib/formatTime";
 
 const ProjetoDetalhe = () => {
   const { id } = useParams<{ id: string }>();
@@ -109,7 +110,7 @@ const ProjetoDetalhe = () => {
                 <Timer className="w-5 h-5 text-primary" />
                 <div>
                   <p className="text-xs text-muted-foreground">Total de Horas</p>
-                  <p className="text-lg font-bold text-foreground">{getTotalHours()}h</p>
+                  <p className="text-lg font-bold font-mono text-foreground">{formatHoursToTime(getTotalHours())}</p>
                 </div>
               </div>
             </div>
@@ -194,7 +195,7 @@ const ProjetoDetalhe = () => {
                       </div>
                       <div className="flex items-center gap-2 bg-muted px-3 py-1 rounded-md">
                         <Timer className="w-4 h-4 text-muted-foreground" />
-                        <span className="font-medium text-foreground">{responsibleHours}h</span>
+                        <span className="font-medium font-mono text-foreground">{formatHoursToTime(responsibleHours)}</span>
                       </div>
                     </div>
                   </CardHeader>
@@ -216,8 +217,8 @@ const ProjetoDetalhe = () => {
                           >
                             {item.text}
                           </label>
-                          <span className="text-sm text-muted-foreground bg-background px-2 py-1 rounded">
-                            {item.hoursWorked || 0}h
+                          <span className="text-sm font-mono text-muted-foreground bg-background px-2 py-1 rounded">
+                            {formatHoursToTime(item.hoursWorked || 0)}
                           </span>
                         </div>
                       ))}
@@ -235,7 +236,7 @@ const ProjetoDetalhe = () => {
                     <Users className="w-5 h-5 text-primary" />
                     <span className="font-medium text-foreground">Total Geral de Horas</span>
                   </div>
-                  <span className="text-2xl font-bold text-primary">{getTotalHours()}h</span>
+                  <span className="text-2xl font-bold font-mono text-primary">{formatHoursToTime(getTotalHours())}</span>
                 </div>
               </CardContent>
             </Card>
