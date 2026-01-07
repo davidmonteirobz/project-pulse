@@ -304,8 +304,19 @@ export function DemandsProvider({ children }: { children: ReactNode }) {
   };
 
   const toggleResponsibility = async (responsibilityId: string) => {
+    // Optimistic update - update UI immediately
+    setDemands(prev => prev.map(demand => ({
+      ...demand,
+      responsibles: demand.responsibles.map(resp => ({
+        ...resp,
+        responsibilities: resp.responsibilities.map(r =>
+          r.id === responsibilityId ? { ...r, completed: !r.completed } : r
+        )
+      }))
+    })));
+
     try {
-      // Find the current state
+      // Find the current state from original data (before optimistic update)
       const { data, error: fetchError } = await supabase
         .from('demand_responsibilities')
         .select('completed')
@@ -320,15 +331,26 @@ export function DemandsProvider({ children }: { children: ReactNode }) {
         .eq('id', responsibilityId);
 
       if (error) throw error;
-
-      await fetchDemands();
     } catch (error) {
       console.error('Error toggling responsibility:', error);
+      // Revert on error
+      await fetchDemands();
       throw error;
     }
   };
 
   const updateTaskHours = async (responsibilityId: string, hours: number) => {
+    // Optimistic update
+    setDemands(prev => prev.map(demand => ({
+      ...demand,
+      responsibles: demand.responsibles.map(resp => ({
+        ...resp,
+        responsibilities: resp.responsibilities.map(r =>
+          r.id === responsibilityId ? { ...r, hoursWorked: hours } : r
+        )
+      }))
+    })));
+
     try {
       const { error } = await supabase
         .from('demand_responsibilities')
@@ -336,10 +358,10 @@ export function DemandsProvider({ children }: { children: ReactNode }) {
         .eq('id', responsibilityId);
 
       if (error) throw error;
-
-      await fetchDemands();
     } catch (error) {
       console.error('Error updating task hours:', error);
+      // Revert on error
+      await fetchDemands();
       throw error;
     }
   };
