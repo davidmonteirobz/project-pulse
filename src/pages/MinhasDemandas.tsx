@@ -139,7 +139,14 @@ const MinhasDemandas = () => {
 
   const weeklyDemands = myDemands.filter(d => {
     const dueDate = new Date(d.dueDate);
-    return dueDate >= today && dueDate <= weekFromNow;
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    return dueDate > todayStart && dueDate <= weekFromNow;
+  });
+
+  const overdueDemands = myDemands.filter(d => {
+    const dueDate = new Date(d.dueDate);
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    return dueDate < todayStart;
   });
 
   const getStatusVariant = (status: DemandStatus) => {
@@ -307,22 +314,24 @@ const MinhasDemandas = () => {
           <Card className="shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total de Demandas
+                Demandas Atrasadas
               </CardTitle>
-              <AlertTriangle className="w-5 h-5 text-muted-foreground" />
+              <AlertTriangle className="w-5 h-5 text-destructive" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-foreground">{myDemands.length}</div>
+              <div className={`text-3xl font-bold ${overdueDemands.length > 0 ? 'text-destructive' : 'text-foreground'}`}>
+                {overdueDemands.length}
+              </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="semana" className="w-full">
+        <Tabs defaultValue="hoje" className="w-full">
           <TabsList>
             <TabsTrigger value="hoje">Hoje ({dailyDemands.length})</TabsTrigger>
             <TabsTrigger value="semana">Semana ({weeklyDemands.length})</TabsTrigger>
-            <TabsTrigger value="todas">Todas ({myDemands.length})</TabsTrigger>
+            <TabsTrigger value="atrasadas">Atrasadas ({overdueDemands.length})</TabsTrigger>
           </TabsList>
 
           <TabsContent value="hoje" className="space-y-4 mt-4">
@@ -349,15 +358,15 @@ const MinhasDemandas = () => {
             )}
           </TabsContent>
 
-          <TabsContent value="todas" className="space-y-4 mt-4">
-            {myDemands.length === 0 ? (
+          <TabsContent value="atrasadas" className="space-y-4 mt-4">
+            {overdueDemands.length === 0 ? (
               <Card className="shadow-sm">
                 <CardContent className="py-8 text-center">
-                  <p className="text-muted-foreground">Você não possui demandas abertas.</p>
+                  <p className="text-muted-foreground">Nenhuma demanda atrasada. 🎉</p>
                 </CardContent>
               </Card>
             ) : (
-              myDemands.map(renderDemandCard)
+              overdueDemands.map(renderDemandCard)
             )}
           </TabsContent>
         </Tabs>
